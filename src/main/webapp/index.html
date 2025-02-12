@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Assignment Submission Portal</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        /* Hero Section */
+        .hero {
+            background: linear-gradient(135deg, #2196F3, #1976D2);
+            color: white;
+            padding: 6rem 2rem;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('path/to/pattern.svg') center/cover;
+            opacity: 0.1;
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 1;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .hero h1 {
+            font-size: 3.5rem;
+            margin-bottom: 1.5rem;
+            animation: fadeInUp 1s ease-out;
+        }
+
+        .hero p {
+            font-size: 1.4rem;
+            margin-bottom: 2rem;
+            opacity: 0.9;
+        }
+
+        /* Portal Cards */
+        .portal-section {
+            padding: 4rem 2rem;
+            background: #fff;
+        }
+
+        .portal-cards {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .portal-card {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 2rem;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: var(--transition);
+        }
+
+        .portal-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+
+        .portal-card h2 {
+            color: var(--primary-color);
+            margin-bottom: 1.5rem;
+        }
+
+        /* Features Section */
+        .features {
+            background: #f8f9fa;
+            padding: 4rem 2rem;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .feature-card {
+            background: white;
+            padding: 2rem;
+            border-radius: var(--border-radius);
+            text-align: center;
+            transition: var(--transition);
+        }
+
+        /* Statistics Section */
+        .stats {
+            background: var(--primary-color);
+            color: white;
+            padding: 4rem 2rem;
+            text-align: center;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .stat-item h3 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        /* Footer */
+        footer {
+            background: #333;
+            color: white;
+            padding: 4rem 2rem;
+        }
+
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 2rem;
+        }
+
+        .footer-section ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .footer-section ul li {
+            margin-bottom: 0.5rem;
+        }
+
+        .footer-section a {
+            color: #fff;
+            text-decoration: none;
+            transition: var(--transition);
+        }
+
+        .footer-section a:hover {
+            color: var(--primary-color);
+        }
+
+        .social-links a {
+            font-size: 1.5rem;
+            margin-right: 1rem;
+            color: #fff;
+            transition: var(--transition);
+        }
+
+        @media (max-width: 768px) {
+            .portal-cards {
+                grid-template-columns: 1fr;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .footer-content {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-content">
+            <h1>Assignment Submission Portal</h1>
+            <p>A modern platform for seamless assignment management and submission</p>
+            <div class="cta-buttons">
+                <a href="#portals" class="button">Get Started</a>
+                <a href="#features" class="button">Learn More</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Portal Section -->
+    <section id="portals" class="portal-section">
+        <div class="portal-cards">
+            <div class="portal-card">
+                <i class="fas fa-chalkboard-teacher fa-3x"></i>
+                <h2>Teachers</h2>
+                <p>Manage assignments, track submissions, and evaluate student work efficiently.</p>
+                <div class="button-group">
+                    <a href="teacherLogin" class="button">Login</a>
+                    <a href="teacherRegistration" class="button">Register</a>
+                </div>
+            </div>
+            <div class="portal-card">
+                <i class="fas fa-user-graduate fa-3x"></i>
+                <h2>Students</h2>
+                <p>Submit assignments, track deadlines, and manage your academic progress.</p>
+                <div class="button-group">
+                    <a href="studentLogin" class="button">Login</a>
+                    <a href="studentRegistration" class="button">Register</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="features">
+        <h2 class="section-title">Key Features</h2>
+        <div class="feature-grid">
+            <div class="feature-card">
+                <i class="fas fa-cloud-upload-alt fa-2x"></i>
+                <h3>Easy Submission</h3>
+                <p>Submit assignments with just a few clicks</p>
+            </div>
+            <div class="feature-card">
+                <i class="fas fa-clock fa-2x"></i>
+                <h3>Deadline Tracking</h3>
+                <p>Never miss important deadlines</p>
+            </div>
+            <div class="feature-card">
+                <i class="fas fa-chart-line fa-2x"></i>
+                <h3>Progress Tracking</h3>
+                <p>Monitor your academic progress</p>
+            </div>
+            <div class="feature-card">
+                <i class="fas fa-shield-alt fa-2x"></i>
+                <h3>Secure Platform</h3>
+                <p>Your data is safe with us</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Statistics Section -->
+    <section class="stats">
+        <div class="stats-grid">
+            <div class="stat-item">
+                <h3>1000+</h3>
+                <p>Active Users</p>
+            </div>
+            <div class="stat-item">
+                <h3>5000+</h3>
+                <p>Assignments</p>
+            </div>
+            <div class="stat-item">
+                <h3>98%</h3>
+                <p>Satisfaction Rate</p>
+            </div>
+            <div class="stat-item">
+                <h3>24/7</h3>
+                <p>Support</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-content">
+            <div class="footer-section">
+                <h3>About Us</h3>
+                <p>We provide a modern solution for assignment submission and management.</p>
+            </div>
+            <div class="footer-section">
+                <h3>Quick Links</h3>
+                <ul>
+                    <li><a href="#features">Features</a></li>
+                    <li><a href="#portals">Portals</a></li>
+                    <li><a href="#">Support</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h3>Contact</h3>
+                <p>Email: support@portal.com</p>
+                <p>Phone: (123) 456-7890</p>
+            </div>
+            <div class="footer-section">
+                <h3>Follow Us</h3>
+                <div class="social-links">
+                    <a href="#"><i class="fab fa-facebook"></i></a>
+                    <a href="#"><i class="fab fa-twitter"></i></a>
+                    <a href="#"><i class="fab fa-linkedin"></i></a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Font Awesome CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+</body>
+</html>

@@ -1,0 +1,275 @@
+package com.submission.mis.onlinesubmission.services;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.UUID;
+
+import org.hibernate.Session;
+
+import com.submission.mis.onlinesubmission.models.Assignment;
+import com.submission.mis.onlinesubmission.models.Student;
+import com.submission.mis.onlinesubmission.models.Teacher;
+import com.submission.mis.onlinesubmission.models.Submission;
+import com.submission.mis.onlinesubmission.util.HibernateUtil;
+import org.hibernate.query.Query;
+
+public class AssignmentService {
+    private static AssignmentService instance;
+    private final TeacherStatsService teacherStatsService = TeacherStatsService.getInstance();
+    private final SubmissionStatsService submissionStatsService = SubmissionStatsService.getInstance();
+
+    private AssignmentService() {}
+
+    public static AssignmentService getInstance() {
+        if (instance == null) {
+            instance = new AssignmentService();
+        }
+        return instance;
+    }
+
+    public void addAssignment(Assignment assignment) throws Exception {
+        HibernateUtil.executeInTransaction(session -> {
+            // Find all teachers with the same course
+            List<Teacher> sameCourseteachers = session.createQuery(
+                            "FROM Teacher WHERE course = :course AND id != :ownerId", Teacher.class)
+                    .setParameter("course", assignment.getCourse())
+                    .setParameter("ownerId", assignment.getOwner().getId())
+                    .list();
+
+            assignment.getSharedTeachers().addAll(sameCourseteachers);
+            session.persist(assignment);
+        });
+    }
+
+    public void updateAssignment(Assignment assignment) throws Exception {
+        HibernateUtil.executeInTransaction(session ->
+                session.merge(assignment)
+        );
+    }
+
+    public void deleteAssignment(UUID assignmentId) throws Exception {
+        HibernateUtil.executeInTransaction(session -> {
+            Assignment assignment = session.get(Assignment.class, assignmentId);
+            if (assignment != null) {
+                session.remove(assignment);
+            }
+        });
+    }
+
+    public Assignment getAssignmentById(UUID assignmentId) {
+        Session session = HibernateUtil.getSession();
+        try {
+            return session.get(Assignment.class, assignmentId);
+        } finally {
+            HibernateUtil.closeSession(session);
+        }
+    }
+
+    public List<Assignment> getAllAssignments() {
+        Session session = HibernateUtil.getSession();
+        try {
+            return session.createQuery("from Assignment", Assignment.class).list();
+        } finally {
+            HibernateUtil.closeSession(session);
+        }
+    }
+
+    public void addStudentSubmission(UUID assignmentId, Student student, InputStream fileContent, String fileName) throws Exception {
+        HibernateUtil.executeInTransaction(session -> {
+            Assignment assignment = session.get(Assignment.class, assignmentId);
+            if (assignment != null) {
+                if (!isValidFileType(fileName)) {
+                    throw new IllegalArgumentException("Invalid file type.");
+                }
+                Query<Submission> query = session.createQuery(
+                        "FROM Submission WHERE assignment.id = :assignmentId AND student.id = :studentId", Submission.class);
+                query.setParameter("assignmentId", assignmentId);
+                query.setParameter("studentId", student.getId());
+                List<Submission> existingSubmissions = query.list();
+                if (!existingSubmissions.isEmpty()) {
+                    for (Submission existingSubmission : existingSubmissions) {
+                        session.remove(existingSubmission);
+                    }
+                }
+
+                String savedFilePath = saveFile(fileName, fileContent);
+
+                Submission submission = new Submission();
+                submission.setStudent(student);
+                submission.setAssignment(assignment);
+                submission.setFileName(fileName);
+                submission.setSubmissionTime(LocalDateTime.now());
+                submission.setFilePath(savedFilePath);
+
+                assignment.getSubmissions().add(submission);
+                session.merge(assignment);
+            }
+        });
+    }
+
+    private String saveFile(String fileName, InputStream fileContent) {
+        try {
+            String uploadDir = "D://JavaProj//OnlineSubmission//uploads";
+            File uploadDirectory = new File(uploadDir);
+
+            if (!uploadDirectory.exists()) {
+                if (!uploadDirectory.mkdirs()) {
+                    throw new RuntimeException("Failed to create upload directory");
+                }
+            }
+
+            String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss_"));
+            String safeFileName = timestamp + fileName.replaceAll("[^a-zA-Z0-9.-]", "_");
+            File file = new File(uploadDirectory, safeFileName);
+
+            try (FileOutputStream fos = new FileOutputStream(file)) {
+                byte[] buffer = new byte[1024];
+                int bytesRead;
+                while ((bytesRead = fileContent.read(buffer)) != -1) {
+                    fos.write(buffer, 0, bytesRead);
+                }
+            }
+
+            return file.getAbsolutePath();
+        } catch (IOException e) {
+            throw new RuntimeException("Error saving file: " + e.getMessage(), e);
+        }
+    }
+
+    private boolean isValidFileType(String fileName) {
+        String[] allowedExtensions = {".pdf", ".xls", ".xlsx", ".pptx", ".zip"};
+        return java.util.Arrays.stream(allowedExtensions)
+                .anyMatch(ext -> fileName.toLowerCase().endsWith(ext));
+    }
+
+    public List<Assignment> getAssignmentsByTeacher(Teacher teacher) {
+        Session session = HibernateUtil.getSession();
+        try {
+            return session.createQuery("from Assignment where teacher = :teacher", Assignment.class)
+                    .setParameter("teacher", teacher)
+                    .list();
+        } finally {
+            HibernateUtil.closeSession(session);
+        }
+    }
+
+    public List<Assignment> getAssignmentsWithSubmissions(Teacher teacher) {
+        Session session = HibernateUtil.getSession();
+        try {
+            // Using join fetch to eagerly load the submittedStudents collection
+            return session.createQuery(
+                            "SELECT DISTINCT a FROM Assignment a " +
+                                    "LEFT JOIN FETCH a.submittedStudents " +
+                                    "WHERE a.teacher = :teacher", Assignment.class)
+                    .setParameter("teacher", teacher)
+                    .list();
+        } finally {
+            HibernateUtil.closeSession(session);
+        }
+    }
+
+    public List<Assignment> getAssignmentsForTeacher(Teacher teacher) {
+        Session session = HibernateUtil.getSession();
+        try {
+            return session.createQuery(
+                            "SELECT DISTINCT a FROM Assignment a " +
+                                    "LEFT JOIN FETCH a.submittedStudents " +
+                                    "WHERE a.course = :course " +
+                                    "ORDER BY a.Posttime DESC", Assignment.class)
+                    .setParameter("course", teacher.getCourse())
+                    .list();
+        } finally {
+            HibernateUtil.closeSession(session);
+        }
+    }
+
+    public boolean canModifyAssignment(Teacher teacher, Assignment assignment) {
+        return assignment.isOwner(teacher);
+    }
+    public List<Submission> getSubmissionsByAssignmentId(UUID assignmentId) {
+        Session session = HibernateUtil.getSession();
+        try {
+            Query<Submission> query = session.createQuery(
+                    "FROM Submission WHERE assignment.id = :assignmentId", Submission.class);
+            query.setParameter("assignmentId", assignmentId);
+            return query.list();
+        } catch (Exception e) {
+            System.out.println("Error retrieving submissions: " + e.getMessage());
+            return null;
+        } finally {
+            HibernateUtil.closeSession(session);
+        }
+    }
+
+    public Submission getSubmissionById(UUID uuid) {
+        Session session = HibernateUtil.getSession();
+        try{
+            return session.get(Submission.class, uuid);
+        }catch(Exception e){
+            System.out.println("Error getting submission: " + e.getMessage());
+            return null;
+        }
+        finally {
+            HibernateUtil.closeSession(session);
+        }
+
+    }
+
+    /**
+     * Gets submission statistics for an assignment
+     */
+    public SubmissionStatsService.SubmissionStats getSubmissionStats(UUID assignmentId) {
+        return submissionStatsService.getSubmissionStats(assignmentId);
+    }
+
+    /**
+     * Gets submission progress for a specific assignment
+     */
+    public double getSubmissionProgress(UUID assignmentId) {
+        return submissionStatsService.getSubmissionProgress(assignmentId);
+    }
+
+    /**
+     * Gets overall assignment statistics for a teacher
+     */
+    public TeacherStats getTeacherStats(UUID teacherId) {
+        Session session = HibernateUtil.getSession();
+        try {
+            // Get total assignments
+            Long totalAssignments = session.createQuery(
+                            "select count(*) from Assignment where teacher.id = :teacherId", Long.class)
+                    .setParameter("teacherId", teacherId)
+                    .uniqueResult();
+
+            // Get active assignments (not past deadline)
+            Long activeAssignments = session.createQuery(
+                            "select count(*) from Assignment where teacher.id = :teacherId and deadline >= :today", Long.class)
+                    .setParameter("teacherId", teacherId)
+                    .setParameter("today", LocalDate.now())
+                    .uniqueResult();
+
+            // Get total submissions
+            Long totalSubmissions = session.createQuery(
+                            "select count(*) from Submission s where s.assignment.teacher.id = :teacherId", Long.class)
+                    .setParameter("teacherId", teacherId)
+                    .uniqueResult();
+
+            return teacherStatsService.createStats(
+                    totalAssignments.intValue(),
+                    activeAssignments.intValue(),
+                    totalSubmissions.intValue()
+            );
+        } finally {
+            HibernateUtil.closeSession(session);
+        }
+    }
+}
+
+// Helper classes for statistics
+
