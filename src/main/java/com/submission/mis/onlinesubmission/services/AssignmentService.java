@@ -74,7 +74,17 @@ public class AssignmentService {
     public List<Assignment> getAllAssignments() {
         Session session = HibernateUtil.getSession();
         try {
-            return session.createQuery("from Assignment", Assignment.class).list();
+            // Use join fetch to avoid N+1 query problem
+            return session.createQuery(
+                "SELECT DISTINCT a FROM Assignment a " +
+                "LEFT JOIN FETCH a.submissions " +
+                "LEFT JOIN FETCH a.teacher " +
+                "ORDER BY a.deadline", Assignment.class)
+                .list();
+        } catch (Exception e) {
+            System.err.println("Error retrieving assignments: " + e.getMessage());
+            e.printStackTrace();
+            return null;
         } finally {
             HibernateUtil.closeSession(session);
         }
@@ -178,12 +188,17 @@ public class AssignmentService {
         Session session = HibernateUtil.getSession();
         try {
             return session.createQuery(
-                            "SELECT DISTINCT a FROM Assignment a " +
-                                    "LEFT JOIN FETCH a.submittedStudents " +
-                                    "WHERE a.course = :course " +
-                                    "ORDER BY a.Posttime DESC", Assignment.class)
-                    .setParameter("course", teacher.getCourse())
-                    .list();
+                "SELECT DISTINCT a FROM Assignment a " +
+                "LEFT JOIN FETCH a.submissions " +
+                "LEFT JOIN FETCH a.teacher " +
+                "WHERE a.course = :course " +
+                "ORDER BY a.Posttime DESC", Assignment.class)
+                .setParameter("course", teacher.getCourse())
+                .list();
+        } catch (Exception e) {
+            System.err.println("Error retrieving assignments for teacher: " + e.getMessage());
+            e.printStackTrace();
+            return null;
         } finally {
             HibernateUtil.closeSession(session);
         }

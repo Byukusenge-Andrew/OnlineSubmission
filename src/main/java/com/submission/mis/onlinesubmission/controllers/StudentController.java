@@ -7,6 +7,7 @@ import java.util.UUID;
 
 import com.submission.mis.onlinesubmission.models.Assignment;
 import com.submission.mis.onlinesubmission.models.Student;
+import com.submission.mis.onlinesubmission.models.Submission;
 import com.submission.mis.onlinesubmission.services.AssignmentService;
 import com.submission.mis.onlinesubmission.services.StudentService;
 import com.submission.mis.onlinesubmission.services.StudentStatsService;
@@ -190,10 +191,35 @@ public class StudentController extends HttpServlet {
     private void handleViewAssignments(HttpServletRequest request, HttpServletResponse response) 
             throws ServletException, IOException {
         try {
+            HttpSession session = request.getSession(false);
+            if (session == null || session.getAttribute("studentId") == null) {
+                response.sendRedirect(request.getContextPath() + "/studentLogin");
+                return;
+            }
+
+            UUID studentId = (UUID) session.getAttribute("studentId");
+            Student student = service.getStudentById(studentId);
+            
+            if (student == null) {
+                throw new IllegalStateException("Student not found");
+            }
+
             List<Assignment> assignments = assignmentService.getAllAssignments();
+            if (assignments != null) {
+                // Get submissions for each assignment
+                for (Assignment assignment : assignments) {
+                    List<Submission> submissions = assignmentService.getSubmissionsByAssignmentId(assignment.getId());
+                    assignment.setSubmissions(submissions);
+                }
+            }
+
             request.setAttribute("assignments", assignments);
+            request.setAttribute("currentStudent", student);
             request.getRequestDispatcher("WEB-INF/Student/viewAssignment.jsp").forward(request, response);
+            
         } catch (Exception e) {
+            System.err.println("Error retrieving assignments: " + e.getMessage());
+            e.printStackTrace();
             response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Error retrieving assignments");
         }
     }
