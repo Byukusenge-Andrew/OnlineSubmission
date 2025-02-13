@@ -145,41 +145,7 @@
 </form>
 
 
-<h2>List of Students</h2>
 
-<table>
-    <tr>
-        <th>ID (Last 8 chars)</th>
-        <th>Names</th>
-        <th>Email</th>
-        <th>Date of Birth</th>
-        <th>Age</th>
-    </tr>
-    <%
-        List<Student> students = (List<Student>) request.getAttribute("students");
-        if (students != null && !students.isEmpty()) {
-            for (Student student : students) {
-                String idStr = student.getId().toString();
-                String shortId = idStr.substring(Math.max(0, idStr.length() - 8));
-    %>
-    <tr>
-        <td><%= shortId %></td>
-        <td><%= student.getFirstName() %> <%= student.getLastName() %></td>
-        <td><%= student.getEmail() %></td>
-        <td><%= student.getBirthDate() %></td>
-        <td><%= student.getAge() %></td>
-    </tr>
-    <%
-        }
-    } else {
-    %>
-    <tr>
-        <td colspan="5" class="no-data">No students available.</td>
-    </tr>
-    <%
-        }
-    %>
-</table>
 
 </body>
 </html>
