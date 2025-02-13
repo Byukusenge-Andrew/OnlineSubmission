@@ -10,11 +10,25 @@
 <%@ page import="com.submission.mis.onlinesubmission.models.Assignment" %>
 <%@ page import="com.submission.mis.onlinesubmission.models.Submission" %>
 <%@ page import="java.util.UUID" %>
+<%@ page import="com.submission.mis.onlinesubmission.models.Student" %>
+<%@ page import="java.time.format.DateTimeFormatter" %>
+<%@ page import="java.time.LocalDate" %>
+<%
+    Student student = (Student) request.getAttribute("currentStudent");
+    if (student == null) {
+        response.sendRedirect(request.getContextPath() + "/studentLogin");
+        return;
+    }
+    
+    List<Assignment> assignments = (List<Assignment>) request.getAttribute("assignments");
+%>
+<!DOCTYPE html>
 <html>
 <head>
     <title>View Assignments</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -197,71 +211,98 @@
     </style>
 </head>
 <body>
-    <nav class="navbar">
-        <div class="nav-container">
-            <a href="studentHome" class="nav-brand">Student Portal</a>
-            <ul class="nav-links">
-                <li><a href="studentHome">Dashboard</a></li>
-                <li><a href="viewAssignments" class="active">Assignments</a></li>
-                <li><a href="studentProfile">Profile</a></li>
-                <li><a href="logout" class="logout-btn">Logout</a></li>
-            </ul>
-        </div>
-    </nav>
-
-    <div class="container">
-        <h2>Assignments</h2>
-        <table>
-            <tr>
-                <th>Title</th>
-                <th>Description</th>
-                <th>Course</th>
-                <th>Instructor</th>
-                <th>Post Time</th>
-                <th>Deadline</th>
-                <th>Status</th>
-                <th>Action</th>
-            </tr>
-            <%
-                List<Assignment> assignments = (List<Assignment>) request.getAttribute("assignments");
-                UUID currentStudentId = (UUID) session.getAttribute("studentId");
-                
-                if (assignments != null) {
-                    for (Assignment assignment : assignments) {
-                        boolean hasSubmitted = false;
-                        for (Submission submission : assignment.getSubmissions()) {
-                            if (submission.getStudent().getId().equals(currentStudentId)) {
-                                hasSubmitted = true;
-                                break;
-                            }
-                        }
-            %>
-            <tr>
-                <td><%= assignment.getTitle() %></td>
-                <td><%= assignment.getDescription() %></td>
-                <td><%= assignment.getCourse()%></td>
-                <td><%= assignment.getTeacher().getName()%></td>
-                <td><%= assignment.getPosttime() %></td>
-                <td><%= assignment.getDeadline() %></td>
-                <td>
-                    <% if (hasSubmitted) { %>
-                        <span class="status-badge status-submitted">Submitted</span>
-                    <% } else { %>
-                        <span class="status-badge status-pending">Pending</span>
-                    <% } %>
-                </td>
-                <td>
-                    <a href="${pageContext.request.contextPath}/submitAssignment?assignmentId=<%= assignment.getId() %>" 
-                       class="button <%= hasSubmitted ? "disabled" : "" %>">
-                        <%= hasSubmitted ? "Submitted" : "Submit" %>
+    <div class="app-container">
+        <nav class="navbar">
+            <div class="nav-container">
+                <div class="nav-start">
+                    <a href="${pageContext.request.contextPath}/studentHome" class="nav-link">
+                        <i class="fas fa-home"></i> Home
                     </a>
-                </td>
-            </tr>
-            <%
-                    }
-                }
-            %>
-        </table>
+                    <a href="${pageContext.request.contextPath}/viewAssignments" class="nav-link active">
+                        <i class="fas fa-tasks"></i> Assignments
+                    </a>
+                    <a href="${pageContext.request.contextPath}/studentProfile" class="nav-link">
+                        <i class="fas fa-user"></i> Profile
+                    </a>
+                </div>
+                <div class="nav-end">
+                    <span class="welcome-text">Welcome, <%= student.getFirstName() %></span>
+                    <a href="${pageContext.request.contextPath}/logout" class="btn btn-outline">
+                        <i class="fas fa-sign-out-alt"></i> Logout
+                    </a>
+                </div>
+            </div>
+        </nav>
+
+        <div class="main-content">
+            <div class="card">
+                <div class="card-header">
+                    <h2><i class="fas fa-tasks"></i> Assignments</h2>
+                </div>
+                <div class="card-body">
+                    <% if (assignments == null || assignments.isEmpty()) { %>
+                        <div class="empty-state">
+                            <i class="fas fa-clipboard-list fa-3x"></i>
+                            <p>No assignments available at the moment.</p>
+                        </div>
+                    <% } else { %>
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Title</th>
+                                        <th>Course</th>
+                                        <th>Teacher</th>
+                                        <th>Deadline</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <% for (Assignment assignment : assignments) { 
+                                        boolean isSubmitted = assignment.getSubmissions().stream()
+                                            .anyMatch(s -> s.getStudent().getId().equals(student.getId()));
+                                        boolean isOverdue = assignment.getDeadline().isBefore(LocalDate.now());
+                                    %>
+                                        <tr>
+                                            <td><%= assignment.getTitle() %></td>
+                                            <td><%= assignment.getCourse() %></td>
+                                            <td><%= assignment.getTeacher().getName() %></td>
+                                            <td><%= assignment.getDeadline() %></td>
+                                            <td>
+                                                <% if (isSubmitted) { %>
+                                                    <span class="badge success">Submitted</span>
+                                                <% } else if (isOverdue) { %>
+                                                    <span class="badge error">Overdue</span>
+                                                <% } else { %>
+                                                    <span class="badge warning">Pending</span>
+                                                <% } %>
+                                            </td>
+                                            <td>
+                                                <% if (!isSubmitted && !isOverdue) { %>
+                                                    <a href="${pageContext.request.contextPath}/submitAssignment?assignmentId=<%= assignment.getId() %>" 
+                                                       class="btn btn-sm btn-primary">
+                                                        <i class="fas fa-upload"></i> Submit
+                                                    </a>
+                                                <% } else if (isSubmitted) { %>
+                                                    <span class="btn btn-sm btn-success disabled">
+                                                        <i class="fas fa-check"></i> Submitted
+                                                    </span>
+                                                <% } else { %>
+                                                    <span class="btn btn-sm btn-danger disabled">
+                                                        <i class="fas fa-clock"></i> Overdue
+                                                    </span>
+                                                <% } %>
+                                            </td>
+                                        </tr>
+                                    <% } %>
+                                </tbody>
+                            </table>
+                        </div>
+                    <% } %>
+                </div>
+            </div>
+        </div>
     </div>
 </body>
 </html>

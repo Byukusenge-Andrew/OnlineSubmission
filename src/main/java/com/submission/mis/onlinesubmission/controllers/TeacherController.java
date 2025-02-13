@@ -9,7 +9,11 @@ import java.util.logging.Logger;
 import com.submission.mis.onlinesubmission.models.Assignment;
 import com.submission.mis.onlinesubmission.models.Submission;
 import com.submission.mis.onlinesubmission.models.Teacher;
-import com.submission.mis.onlinesubmission.services.*;
+import com.submission.mis.onlinesubmission.services.AssignmentService;
+import com.submission.mis.onlinesubmission.services.SubmissionStatsService;
+import com.submission.mis.onlinesubmission.services.TeacherService;
+import com.submission.mis.onlinesubmission.services.TeacherStats;
+import com.submission.mis.onlinesubmission.services.TeacherStatsService;
 import com.submission.mis.onlinesubmission.util.ValidationUtil;
 
 import jakarta.servlet.ServletException;
@@ -40,8 +44,10 @@ private static final Logger logger = Logger.getLogger(TeacherController.class.ge
             handleTeacherHome(request, response);
         }else if ("/addAssignment".equalsIgnoreCase(action)) {
             request.getRequestDispatcher("WEB-INF/Teacher/addAssignment.jsp").forward(request, response);
-        }
-        else if ("/deleteAssignment".equalsIgnoreCase(action)) {
+        } else if ("/teacherProfile".equalsIgnoreCase(action)) {
+            handleTeacherProfile(request, response);
+
+        } else if ("/deleteAssignment".equalsIgnoreCase(action)) {
             handleDeleteAssignment(request, response);
         }
 
@@ -58,7 +64,9 @@ private static final Logger logger = Logger.getLogger(TeacherController.class.ge
             }
 
         }
-        else {
+        else if ("/teacherProfile".equals(action)) {
+            handleTeacherProfile(request, response);
+        } else {
             response.sendError(HttpServletResponse.SC_NOT_FOUND, "Page not found.");
         }
     }
@@ -105,13 +113,15 @@ private static final Logger logger = Logger.getLogger(TeacherController.class.ge
             // Log the number of assignments retrieved
             logger.info("Number of assignments retrieved: " + (assignments != null ? assignments.size() : 0));
 
+            // Get total number of students and set it as request attribute
+            Long totalStudents = service.numberOfStudents();
+            request.setAttribute("totalStudents", totalStudents);
+
             if (assignments == null || assignments.isEmpty()) {
                 request.setAttribute("assignments", null); // Avoid passing an empty list
             } else {
                 request.setAttribute("assignments", assignments);
             }
-
-
 
             request.setAttribute("currentTeacher", teacher);
             request.getRequestDispatcher("WEB-INF/Teacher/viewTeacherAssignment.jsp").forward(request, response);
@@ -317,31 +327,34 @@ private static final Logger logger = Logger.getLogger(TeacherController.class.ge
         }
     }
 
-    private void handleViewAssignment(HttpServletRequest request, HttpServletResponse response) 
+    private void handleTeacherProfile(HttpServletRequest request, HttpServletResponse response) 
             throws ServletException, IOException {
         try {
-            String assignmentId = request.getParameter("assignmentId");
-            if (assignmentId == null) {
-                response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Assignment ID is required");
+            HttpSession session = request.getSession(false);
+            if (session == null || session.getAttribute("teacherId") == null) {
+                response.sendRedirect(request.getContextPath() + "/teacherLogin");
                 return;
             }
 
-            UUID uuid = UUID.fromString(assignmentId);
-            SubmissionStatsService.SubmissionStats stats = submissionStatsService.getSubmissionStats(uuid);
+            UUID teacherId = (UUID) session.getAttribute("teacherId");
+            Teacher teacher = service.getTeacherById(teacherId);
             
-            request.setAttribute("submissionStats", stats);
-            request.setAttribute("submissionProgress", stats.getSubmissionPercentage());
-            request.setAttribute("totalStudents", stats.getTotalStudents());
-            request.setAttribute("submittedCount", stats.getSubmittedCount());
-            request.setAttribute("pendingCount", stats.getPendingCount());
+            if (teacher == null) {
+                throw new IllegalStateException("Teacher not found");
+            }
+
+            // Get teacher statistics
+            TeacherStats stats = assignmentService.getTeacherStats(teacherId);
+            Long totalStudents = service.numberOfStudents();
             
-            request.getRequestDispatcher("WEB-INF/Teacher/viewAssignment.jsp")
-                  .forward(request, response);
-        } catch (IllegalArgumentException e) {
-            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid assignment ID");
+            request.setAttribute("teacher", teacher);
+            request.setAttribute("stats", stats);
+            request.setAttribute("totalStudents", totalStudents);
+            request.getRequestDispatcher("WEB-INF/Teacher/teacherProfile.jsp").forward(request, response);
+            
         } catch (Exception e) {
             response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, 
-                "Error viewing assignment: " + e.getMessage());
+                "Error loading profile: " + e.getMessage());
         }
     }
 

@@ -6,6 +6,20 @@
   To change this template use File | Settings | File Templates.
 --%>
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
+<%@ page import="com.submission.mis.onlinesubmission.models.Student" %>
+<%
+    Student student = (Student) request.getAttribute("currentStudent");
+    if (student == null) {
+        response.sendRedirect(request.getContextPath() + "/studentLogin");
+        return;
+    }
+    int totalAssignments = (Integer) request.getAttribute("totalAssignments");
+    int submittedAssignments = (Integer) request.getAttribute("submittedAssignments");
+    int pendingAssignments = (Integer) request.getAttribute("pendingAssignments");
+    int overdueAssignments = (Integer) request.getAttribute("overdueAssignments");
+    double completionRate = (Double) request.getAttribute("completionRate");
+    boolean hasOverdue = (Boolean) request.getAttribute("hasOverdue");
+%>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -18,88 +32,82 @@
 </head>
 <body class="bg-surface-50">
     <div class="app-container">
-        <header class="header">
-            <nav class="nav-container">
+        <nav class="navbar">
+            <div class="nav-container">
                 <div class="nav-start">
-                    <a href="${pageContext.request.contextPath}/" class="nav-brand">
-                        <i class="fas fa-graduation-cap"></i>
-                        Assignment Portal
+                    <a href="${pageContext.request.contextPath}/studentHome" class="nav-link active">
+                        <i class="fas fa-home"></i> Home
                     </a>
-                </div>
-                <div class="nav-middle">
-                    <span class="welcome-text">
-                        Welcome, <strong>${sessionScope.studentName}</strong>
-                    </span>
+                    <a href="${pageContext.request.contextPath}/viewAssignments" class="nav-link">
+                        <i class="fas fa-tasks"></i> Assignments
+                    </a>
+                    <a href="${pageContext.request.contextPath}/studentProfile" class="nav-link">
+                        <i class="fas fa-user"></i> Profile
+                    </a>
                 </div>
                 <div class="nav-end">
-                    <a href="${pageContext.request.contextPath}/viewAssignments" class="btn btn-secondary">
-                        <i class="fas fa-tasks"></i> View Assignments
-                    </a>
-                    <a href="${pageContext.request.contextPath}/logout" class="btn btn-danger">
+                    <span class="welcome-text">Welcome, <%= student.getFirstName() %></span>
+                    <a href="${pageContext.request.contextPath}/logout" class="btn btn-outline">
                         <i class="fas fa-sign-out-alt"></i> Logout
                     </a>
                 </div>
-            </nav>
-        </header>
+            </div>
+        </nav>
 
         <main class="main-content">
-            <div class="stats-grid">
-                <div class="stat-card bg-primary-light">
-                    <div class="stat-icon">
-                        <i class="fas fa-book"></i>
-                    </div>
-                    <div class="stat-content">
-                        <h3>Total Assignments</h3>
-                        <p class="stat-value">${totalAssignments}</p>
-                    </div>
-                </div>
-                
-                <div class="stat-card bg-success-light">
-                    <div class="stat-icon">
-                        <i class="fas fa-check-circle"></i>
-                    </div>
-                    <div class="stat-content">
-                        <h3>Submitted</h3>
-                        <p class="stat-value">${submittedAssignments}</p>
-                    </div>
-                </div>
-                
-                <div class="stat-card bg-warning-light">
-                    <div class="stat-icon">
-                        <i class="fas fa-clock"></i>
-                    </div>
-                    <div class="stat-content">
-                        <h3>Pending</h3>
-                        <p class="stat-value">${pendingAssignments}</p>
-                    </div>
-                </div>
-                
-                <div class="stat-card ${hasOverdue ? 'bg-error-light' : 'bg-surface-100'}">
-                    <div class="stat-icon">
-                        <i class="fas fa-exclamation-triangle"></i>
-                    </div>
-                    <div class="stat-content">
-                        <h3>Overdue</h3>
-                        <p class="stat-value">${overdueAssignments}</p>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card mt-6">
+            <div class="card">
                 <div class="card-header">
-                    <h2 class="card-title">
-                        <i class="fas fa-chart-line"></i>
-                        Overall Progress
-                    </h2>
+                    <h2><i class="fas fa-tachometer-alt"></i> Student Dashboard</h2>
                 </div>
                 <div class="card-body">
-                    <div class="progress-container">
-                        <div class="progress-bar">
-                            <div class="progress-fill" style="width: ${completionRate}%"></div>
+                    <div class="stats-grid">
+                        <div class="stat-card bg-primary-light">
+                            <div class="stat-icon"><i class="fas fa-tasks"></i></div>
+                            <div class="stat-content">
+                                <h3>Total Assignments</h3>
+                                <div class="stat-value"><%= totalAssignments %></div>
+                            </div>
                         </div>
-                        <p class="progress-text">
-                            Completion Rate: ${String.format("%.1f", completionRate)}%
-                        </p>
+                        
+                        <div class="stat-card bg-success-light">
+                            <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
+                            <div class="stat-content">
+                                <h3>Submitted</h3>
+                                <div class="stat-value"><%= submittedAssignments %></div>
+                            </div>
+                        </div>
+                        
+                        <div class="stat-card bg-warning-light">
+                            <div class="stat-icon"><i class="fas fa-clock"></i></div>
+                            <div class="stat-content">
+                                <h3>Pending</h3>
+                                <div class="stat-value"><%= pendingAssignments %></div>
+                            </div>
+                        </div>
+                        
+                        <div class="stat-card <%= hasOverdue ? "bg-error-light" : "bg-success-light" %>">
+                            <div class="stat-icon">
+                                <i class="fas <%= hasOverdue ? "fa-exclamation-circle" : "fa-check-double" %>"></i>
+                            </div>
+                            <div class="stat-content">
+                                <h3>Overdue</h3>
+                                <div class="stat-value"><%= overdueAssignments %></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="progress-container mt-6">
+                        <h3>Overall Progress</h3>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: <%= completionRate %>%"></div>
+                        </div>
+                        <p class="progress-text"><%= String.format("%.1f%%", completionRate) %> Complete</p>
+                    </div>
+
+                    <div class="action-buttons mt-6">
+                        <a href="${pageContext.request.contextPath}/viewAssignments" class="btn btn-primary">
+                            <i class="fas fa-tasks"></i> View Assignments
+                        </a>
                     </div>
                 </div>
             </div>

@@ -37,6 +37,7 @@
         <url-pattern>/studentHome</url-pattern>
         <url-pattern>/viewAssignments</url-pattern>
         <url-pattern>/submitAssignment</url-pattern>
+        <url-pattern>/studentProfile</url-pattern>
 
     </servlet-mapping>
 
@@ -54,6 +55,7 @@
         <url-pattern>/addAssignment</url-pattern>
         <url-pattern>/updateAssignment</url-pattern>
         <url-pattern>/deleteAssignment</url-pattern>
+        <url-pattern>/teacherProfile</url-pattern>
     </servlet-mapping>
 
     <!-- Assignment Servlet Configuration -->

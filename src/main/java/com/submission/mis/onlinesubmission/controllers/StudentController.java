@@ -47,6 +47,11 @@ public class StudentController extends HttpServlet {
         } else if("/submitAssignment".equals(action)) {
             // Forward to the submission form
             request.getRequestDispatcher("WEB-INF/Student/submitAssignment.jsp").forward(request, response);
+        } else if ("/studentProfile".equalsIgnoreCase(action)) {
+            handleStudentProfile(request, response);
+
+        } else if ("/studentProfile".equals(action)) {
+            handleStudentProfile(request, response);
         } else {
             response.sendError(HttpServletResponse.SC_NOT_FOUND, "Page not found.");
         }
@@ -230,10 +235,22 @@ public class StudentController extends HttpServlet {
             HttpSession session = request.getSession();
             UUID studentId = (UUID) session.getAttribute("studentId");
             
+            if (studentId == null) {
+                response.sendRedirect(request.getContextPath() + "/studentLogin");
+                return;
+            }
+
+            // Get the student object
+            Student student = service.getStudentById(studentId);
+            if (student == null) {
+                throw new IllegalStateException("Student not found");
+            }
+            
             // Get student statistics
             StudentStatsService.StudentStats stats = studentStatsService.getStudentStats(studentId);
             
             // Set attributes for the JSP
+            request.setAttribute("currentStudent", student);
             request.setAttribute("totalAssignments", stats.getTotalAssignments());
             request.setAttribute("submittedAssignments", stats.getSubmittedAssignments());
             request.setAttribute("pendingAssignments", stats.getPendingAssignments());
@@ -243,8 +260,39 @@ public class StudentController extends HttpServlet {
             
             request.getRequestDispatcher("WEB-INF/Student/studentHome.jsp").forward(request, response);
         } catch (Exception e) {
+            System.err.println("Error loading student dashboard: " + e.getMessage());
+            e.printStackTrace();
             response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, 
                 "Error loading student dashboard: " + e.getMessage());
+        }
+    }
+
+    private void handleStudentProfile(HttpServletRequest request, HttpServletResponse response) 
+            throws ServletException, IOException {
+        try {
+            HttpSession session = request.getSession(false);
+            if (session == null || session.getAttribute("studentId") == null) {
+                response.sendRedirect(request.getContextPath() + "/studentLogin");
+                return;
+            }
+
+            UUID studentId = (UUID) session.getAttribute("studentId");
+            Student student = service.getStudentById(studentId);
+            
+            if (student == null) {
+                throw new IllegalStateException("Student not found");
+            }
+
+            // Get student statistics
+            StudentStatsService.StudentStats stats = studentStatsService.getStudentStats(studentId);
+            
+            request.setAttribute("student", student);
+            request.setAttribute("stats", stats);
+            request.getRequestDispatcher("WEB-INF/Student/studentProfile.jsp").forward(request, response);
+            
+        } catch (Exception e) {
+            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, 
+                "Error loading profile: " + e.getMessage());
         }
     }
 
