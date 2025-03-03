@@ -79,6 +79,10 @@ public class Assignment {
     @OneToMany(mappedBy = "assignment", cascade = CascadeType.ALL)
     private List<Submission> submissions = new ArrayList<>();
 
+    /** File path for the assignment */
+    @Column(nullable = true)
+    private String filePath;
+
     /** Default constructor required by JPA */
     public Assignment() {}
 
@@ -90,8 +94,9 @@ public class Assignment {
      * @param posttime When the assignment should be posted
      * @param deadline When the assignment is due
      * @param course assignment course
+     * @param filePath File path for the assignment
      */
-    public Assignment(String title, String description, String course, Teacher owner, LocalDate posttime, LocalDate deadline) {
+    public Assignment(String title, String description, String course, Teacher owner, LocalDate posttime, LocalDate deadline, String filePath) {
         this.title = title;
         this.description = description;
         this.teacher = owner;
@@ -99,6 +104,7 @@ public class Assignment {
         this.Posttime = posttime;
         this.deadline = deadline;
         this.course = course;
+        this.filePath = filePath;
     }
 
     public String getCourse() {
@@ -191,5 +197,13 @@ public class Assignment {
 
     public void setSubmissions(List<Submission> submissions) {
         this.submissions = submissions;
+    }
+
+    public String getFilePath() {
+        return filePath;
+    }
+
+    public void setFilePath(String filePath) {
+        this.filePath = filePath;
     }
 }

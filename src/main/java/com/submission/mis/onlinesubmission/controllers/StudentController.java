@@ -1,9 +1,13 @@
 package com.submission.mis.onlinesubmission.controllers;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
+import java.util.logging.Logger;
 
 import com.submission.mis.onlinesubmission.models.Assignment;
 import com.submission.mis.onlinesubmission.models.Student;
@@ -28,6 +32,7 @@ import jakarta.servlet.http.Part;
     maxRequestSize = 1024 * 1024 * 15 // 15 MB
 )
 public class StudentController extends HttpServlet {
+    private static final Logger logger = Logger.getLogger(StudentController.class.getName());
     private final StudentService service = StudentService.getInstance();
     private final AssignmentService assignmentService = AssignmentService.getInstance();
     private final StudentStatsService studentStatsService = StudentStatsService.getInstance();
@@ -35,23 +40,31 @@ public class StudentController extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         String action = request.getServletPath();
-        if ("/studentRegistration".equals(action)) {
-            request.setAttribute("formName", "student Registration Form");
-            request.getRequestDispatcher("WEB-INF/form.jsp").forward(request, response);
-        } else if ("/studentLogin".equals(action)) {
-            request.getRequestDispatcher("WEB-INF/StudentLogin.jsp").forward(request, response);
-        } else if ("/studentHome".equals(action)) {
+        HttpSession session = request.getSession(false);
+        
+        if (session == null || session.getAttribute("studentId") == null) {
+            if ("/studentLogin".equals(action)) {
+                request.getRequestDispatcher("WEB-INF/Student/studentLogin.jsp").forward(request, response);
+                return;
+            }
+            response.sendRedirect(request.getContextPath() + "/studentLogin");
+            return;
+        }
+
+        // Proceed with other actions
+        if ("/studentHome".equals(action)) {
             handleStudentHome(request, response);
-        } else if("/viewAssignments".equals(action)) {
+        } else if ("/studentRegistration".equals(action)) {
+            request.getRequestDispatcher("WEB-INF/form.jsp").forward(request, response);
+        } else if ("/viewAssignments".equals(action)) {
             handleViewAssignments(request, response);
         } else if("/submitAssignment".equals(action)) {
             // Forward to the submission form
             request.getRequestDispatcher("WEB-INF/Student/submitAssignment.jsp").forward(request, response);
-        } else if ("/studentProfile".equalsIgnoreCase(action)) {
-            handleStudentProfile(request, response);
-
         } else if ("/studentProfile".equals(action)) {
             handleStudentProfile(request, response);
+        } else if ("/downloadAssignment".equals(action)) {
+            handleDownloadAssignment(request, response);
         } else {
             response.sendError(HttpServletResponse.SC_NOT_FOUND, "Page not found.");
         }
@@ -79,7 +92,7 @@ public class StudentController extends HttpServlet {
         String email = ValidationUtil.sanitizeInput(request.getParameter("email"));
         String password = request.getParameter("password");
         String dobString = request.getParameter("dob");
-        
+        String classroom = request.getParameter("classroom");
         try {
             // Validate all inputs
             if (!ValidationUtil.isValidName(firstname)) {
@@ -109,17 +122,24 @@ public class StudentController extends HttpServlet {
             if (service.emailExists(email)) {
                 throw new IllegalArgumentException("Email already registered");
             }
+            if(!ValidationUtil.isValidClass(classroom)) {
+                throw new IllegalArgumentException("Invalid email format");
+            }
 
-            Student student = new Student(firstname, lastname, email, password, age, dob);
+            Student student = new Student(firstname, lastname, email, password, age, dob, classroom);
+
             service.addStudent(student);
-            
-            // Create session
+            // Create session and store student data
             HttpSession session = request.getSession();
             session.setAttribute("studentId", student.getId());
+            session.setAttribute("classroom", student.getClassRoom());
             session.setAttribute("studentName", student.getFirstName() + " " + student.getLastName());
             session.setAttribute("userType", "student");
 
+            session.setMaxInactiveInterval(30 * 60); // 30 minutes timeout
+
             response.sendRedirect(request.getContextPath() + "/studentHome");
+
             
         } catch (IllegalArgumentException e) {
             request.setAttribute("error", e.getMessage());
@@ -129,32 +149,26 @@ public class StudentController extends HttpServlet {
             request.setAttribute("dob", dobString);
             request.getRequestDispatcher("WEB-INF/form.jsp").forward(request, response);
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            request.setAttribute("error", "Registration failed: " + e.getMessage());
+            request.getRequestDispatcher("WEB-INF/form.jsp").forward(request, response);
         }
     }
 
-    private void handleLogin(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+    private void handleLogin(HttpServletRequest request, HttpServletResponse response) throws IOException {
         String email = request.getParameter("email");
         String password = request.getParameter("password");
+        Student student = service.loginAndGetStudent(email, password);
+        if (student != null) {
+            HttpSession session = request.getSession();
+            session.setAttribute("studentId", student.getId());
+            session.setAttribute("classroom", student.getClassRoom());
+            session.setAttribute("studentName", student.getFirstName() + " " + student.getLastName());
+            session.setAttribute("userType", "student");
+            session.setMaxInactiveInterval(30 * 60); // 30 minutes timeout
 
-        try {
-            Student student = service.loginAndGetStudent(email, password);
-            if (student != null) {
-                // Create session and store student data
-                HttpSession session = request.getSession();
-                session.setAttribute("studentId", student.getId());
-                session.setAttribute("studentName", student.getFirstName() + " " + student.getLastName());
-                session.setAttribute("userType", "student");
-                session.setMaxInactiveInterval(30 * 60); // 30 minutes timeout
-
-                response.sendRedirect(request.getContextPath() + "/studentHome");
-            } else {
-                request.setAttribute("message", "Invalid email or password");
-                request.getRequestDispatcher("WEB-INF/StudentLogin.jsp").forward(request, response);
-            }
-        } catch (Exception e) {
-            request.setAttribute("message", "Error during login: " + e.getMessage());
-            request.getRequestDispatcher("WEB-INF/StudentLogin.jsp").forward(request, response);
+            response.sendRedirect(request.getContextPath() + "/studentHome");
+        } else {
+            response.sendRedirect(request.getContextPath() + "/studentLogin?error=Invalid credentials");
         }
     }
 
@@ -163,7 +177,7 @@ public class StudentController extends HttpServlet {
         try {
             String assignmentId = request.getParameter("assignmentId");
             String studentId = request.getParameter("studentId");
-            // Get the file part from the request
+
             Part filePart = request.getPart("fileName");
             String fileName = filePart.getSubmittedFileName();
             InputStream fileContent = filePart.getInputStream();
@@ -293,6 +307,34 @@ public class StudentController extends HttpServlet {
         } catch (Exception e) {
             response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, 
                 "Error loading profile: " + e.getMessage());
+        }
+    }
+
+    private void handleDownloadAssignment(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        String assignmentIdStr = request.getParameter("id");
+        UUID assignmentId = UUID.fromString(assignmentIdStr);
+        
+        Assignment assignment = assignmentService.getAssignmentById(assignmentId);
+        if (assignment != null && assignment.getFilePath() != null) {
+            File file = new File(assignment.getFilePath());
+            if (file.exists()) {
+                response.setContentType("application/octet-stream");
+                response.setHeader("Content-Disposition", "attachment; filename=\"" + file.getName() + "\"");
+                response.setContentLength((int) file.length());
+
+                try (FileInputStream in = new FileInputStream(file);
+                     OutputStream out = response.getOutputStream()) {
+                    byte[] buffer = new byte[4096];
+                    int length;
+                    while ((length = in.read(buffer)) > 0) {
+                        out.write(buffer, 0, length);
+                    }
+                }
+            } else {
+                response.sendError(HttpServletResponse.SC_NOT_FOUND, "File not found.");
+            }
+        } else {
+            response.sendError(HttpServletResponse.SC_NOT_FOUND, "Assignment or file not found.");
         }
     }
 

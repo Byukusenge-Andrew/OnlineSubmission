@@ -17,6 +17,16 @@ public class ValidationUtil {
     // Regex pattern for validating passwords (at least 8 characters, including uppercase, lowercase, number, and special character)
     private static final Pattern PASSWORD_PATTERN = Pattern.compile("^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{8,}$");
 
+    public static boolean isValidClass(String classname) {
+        String allowedClasses[] = {"A","B","C","D"};
+        for (String allowedClass : allowedClasses) {
+            if(classname.contains(allowedClass)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     /**
      * Validates if the provided name is valid.
      * @param name The name to validate.
@@ -70,4 +80,15 @@ public class ValidationUtil {
     public static String sanitizeInput(String input) {
         return input == null ? null : input.trim();
     }
+
+    /**
+     * check of submission time is not over
+     * @param submissionDate
+     * @param deadline
+     * @return  true&&false
+     */
+    public static boolean checkSubmission(LocalDate submissionDate,LocalDate deadline) {
+        return submissionDate != null && submissionDate.isBefore(deadline);
+    }
+
 }

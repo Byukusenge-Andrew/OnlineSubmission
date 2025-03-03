@@ -15,38 +15,62 @@ import java.util.UUID;
  */
 @Entity
 public class Student {
-    /** Unique identifier for the student */
+    /**
+     * Unique identifier for the student
+     */
     @Id
     @GeneratedValue(generator = "UUID")
     @GenericGenerator(
-        name = "UUID",
-        strategy = "org.hibernate.id.UUIDGenerator"
+            name = "UUID",
+            strategy = "org.hibernate.id.UUIDGenerator"
     )
     @Column(name = "id", updatable = false, nullable = false)
     private UUID id;
 
-    /** Student's first name */
+    /**
+     * Student's first name
+     */
     private String firstName;
 
-    /** Student's last name */
+    /**
+     * Student's last name
+     */
     private String lastName;
 
 
-    /** Student's email address (used for login) */
+    /**
+     * Student's email address (used for login)
+     */
     private String email;
 
-    /** Student's age */
+    /**
+     * Student's age
+     */
     private int age;
 
-    /** Student's date of birth */
+    /**
+     * Student's date of birth
+     */
     private LocalDate birthDate;
 
-    /** Student's hashed password */
+    /**
+     * Student's hashed password
+     */
     @Column(nullable = false)
     private String password;
 
-    /** Default constructor required by JPA */
-    public Student() {}
+    /**
+     * student's class
+     */
+    @Column(nullable = false )
+    private String classRoom;
+
+
+    /**
+     * Default constructor required by JPA
+     */
+    public Student() {
+    }
 
 //    public Student(int id, String firstName, String lastName, String email, int age, LocalDate birthDate) {
 //        this.id = id;
@@ -59,20 +83,23 @@ public class Student {
 
     /**
      * Creates a new Student with the specified details.
+     *
      * @param firstName The student's first name
-     * @param lastName The student's last name
-     * @param email The student's email address
-     * @param password The student's password (will be hashed)
-     * @param age The student's age
+     * @param lastName  The student's last name
+     * @param email     The student's email address
+     * @param password  The student's password (will be hashed)
+     * @param age       The student's age
      * @param birthDate The student's date of birth
+     * @param classRoom The student's classRoom
      */
-    public Student(String firstName, String lastName, String email, String password, int age, LocalDate birthDate) {
+    public Student(String firstName, String lastName, String email, String password, int age, LocalDate birthDate,String classRoom) {
         this.firstName = firstName;
         this.lastName = lastName;
         this.email = email;
         this.age = age;
         this.birthDate = birthDate;
         this.password = password;
+        this.classRoom =classRoom;
     }
 
 //    public Student(String firstName, String lastName, String email,String password, LocalDate birthDate) {
@@ -85,6 +112,7 @@ public class Student {
 
     /**
      * Gets the student's unique identifier.
+     *
      * @return The UUID of the student
      */
     public UUID getId() {
@@ -97,6 +125,7 @@ public class Student {
 
     /**
      * Gets the student's first name.
+     *
      * @return The student's first name
      */
     public String getFirstName() {
@@ -109,6 +138,7 @@ public class Student {
 
     /**
      * Gets the student's last name.
+     *
      * @return The student's last name
      */
     public String getLastName() {
@@ -121,6 +151,7 @@ public class Student {
 
     /**
      * Gets the student's email address.
+     *
      * @return The student's email address
      */
     public String getEmail() {
@@ -133,6 +164,7 @@ public class Student {
 
     /**
      * Gets the student's age.
+     *
      * @return The student's age
      */
     public int getAge() {
@@ -145,6 +177,7 @@ public class Student {
 
     /**
      * Gets the student's date of birth.
+     *
      * @return The student's date of birth
      */
     public LocalDate getBirthDate() {
@@ -161,9 +194,28 @@ public class Student {
 
     /**
      * Gets the student's hashed password.
+     *
      * @return The student's hashed password
      */
     public String getPassword() {
         return password;
     }
+
+    /**
+     * Gets student classroom
+     * @return students classRoom
+     */
+    public String getClassRoom() {
+        return classRoom;
+    }
+
+    /**
+     * sets student classroom
+     * @param classRoom
+     */
+    public void setClassRoom(String classRoom) {
+        this.classRoom = classRoom;
+    }
 }
+
+

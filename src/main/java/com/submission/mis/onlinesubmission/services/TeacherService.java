@@ -3,14 +3,13 @@ package com.submission.mis.onlinesubmission.services;
 import java.util.List;
 import java.util.UUID;
 
-import com.submission.mis.onlinesubmission.models.Student;
-import com.submission.mis.onlinesubmission.models.Submission;
 import org.hibernate.Session;
+import org.hibernate.query.Query;
 
+import com.submission.mis.onlinesubmission.models.Submission;
 import com.submission.mis.onlinesubmission.models.Teacher;
 import com.submission.mis.onlinesubmission.util.HibernateUtil;
 import com.submission.mis.onlinesubmission.util.PasswordUtil;
-import org.hibernate.query.Query;
 
 /**
  * Service class for managing Teacher-related operations.
@@ -128,4 +127,6 @@ public class TeacherService {
     public boolean login(String email, String password) {
         return loginAndGetTeacher(email, password) != null;
     }
+
+   
 }

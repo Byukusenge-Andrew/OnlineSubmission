@@ -354,6 +354,13 @@
                             <input type="text" id="course" name="course" required 
                                    value="<%= prevAssignment.getCourse() %>">
                         </div>
+                        <div class="form-group"></div>
+                            <label for="fileName">
+                                <i class="fas fa-book"></i> FilePath
+                            </label>
+                            <input type="file" id="fileName" name="fileName" required 
+                                   value="<%= prevAssignment.getFilePath() %>">
+                        </div>
 
                         <div class="form-group">
                             <label for="deadline">

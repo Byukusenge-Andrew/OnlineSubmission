@@ -1,6 +1,10 @@
 package com.submission.mis.onlinesubmission.controllers;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.UUID;
@@ -17,11 +21,14 @@ import com.submission.mis.onlinesubmission.services.TeacherStatsService;
 import com.submission.mis.onlinesubmission.util.ValidationUtil;
 
 import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
+import jakarta.servlet.http.Part;
 
+@MultipartConfig
 public class TeacherController extends HttpServlet {
 private static final Logger logger = Logger.getLogger(TeacherController.class.getName());
     private final TeacherService service = TeacherService.getInstance();
@@ -84,7 +91,6 @@ private static final Logger logger = Logger.getLogger(TeacherController.class.ge
             handleDeleteAssignment(request, response);
         } else if ("addAssignment".equalsIgnoreCase(action)) {
             handleAddAssignment(request, response);
-
         } else {
             response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid action.");
         }
@@ -145,7 +151,7 @@ private static final Logger logger = Logger.getLogger(TeacherController.class.ge
         try {
             Teacher teacher = service.loginAndGetTeacher(email, password);
             if (teacher != null) {
-                // Create session and store teacher data
+
                 HttpSession session = request.getSession();
                 session.setAttribute("teacherId", teacher.getId());
                 session.setAttribute("teacherName", teacher.getFirstName() + " " + teacher.getLastName());
@@ -166,7 +172,10 @@ private static final Logger logger = Logger.getLogger(TeacherController.class.ge
         String title = ValidationUtil.sanitizeInput(request.getParameter("title"));
         String description = ValidationUtil.sanitizeInput(request.getParameter("description"));
         String deadlineStr = request.getParameter("deadline");
-        
+        Part filePart = request.getPart("fileName");
+        String fileName = filePart.getSubmittedFileName();
+        InputStream fileContent = filePart.getInputStream();
+
         try {
             HttpSession session = request.getSession(false);
             if (session == null || session.getAttribute("teacherId") == null) {
@@ -174,30 +183,36 @@ private static final Logger logger = Logger.getLogger(TeacherController.class.ge
             }
             UUID teacherId = (UUID) session.getAttribute("teacherId");
             Teacher teacher = service.getTeacherById(teacherId);
-            
+
             if (title == null || title.trim().length() < 3) {
                 throw new IllegalArgumentException("Title must be at least 3 characters long");
             }
             if (description == null || description.trim().length() < 10) {
                 throw new IllegalArgumentException("Description must be at least 10 characters long");
             }
-            
+
             LocalDate postTime = LocalDate.now();
             LocalDate deadline = LocalDate.parse(deadlineStr);
-            
+
+            String filePath = null; // Initialize filePath as null
+            if (filePart != null && filePart.getSize() > 0) {
+                // Save the file and get the file path
+                filePath = saveFile(filePart, fileName); // Ensure this method saves the file and returns the path
+            }
+
             if (!ValidationUtil.isValidFutureDate(deadline)) {
                 throw new IllegalArgumentException("Deadline must be in the future");
             }
             if (postTime.isAfter(deadline)) {
                 throw new IllegalArgumentException("Post time cannot be after deadline");
             }
-            
+
             // Create assignment with the teacher as owner
-            Assignment assignment = new Assignment(title, description, teacher.getCourse(), teacher, postTime, deadline);
+            Assignment assignment = new Assignment(title, description, teacher.getCourse(), teacher, postTime, deadline, filePath);
             assignmentService.addAssignment(assignment);
-            
+
             response.sendRedirect("teacherAssignments");
-            
+
         } catch (Exception e) {
             request.setAttribute("error", e.getMessage());
             request.setAttribute("title", title);
@@ -206,7 +221,25 @@ private static final Logger logger = Logger.getLogger(TeacherController.class.ge
             request.getRequestDispatcher("WEB-INF/Teacher/addAssignment.jsp").forward(request, response);
         }
     }
-
+    private String saveFile(Part filePart, String fileName) throws IOException {
+        String uploadDir = "D://JavaProj//OnlineSubmission//uploadTeacherAssignment";
+        File uploadDirectory = new File(uploadDir);
+        if (!uploadDirectory.exists()) {
+            uploadDirectory.mkdirs();
+        }
+        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss_"));
+        String safeFileName = timestamp + fileName.replaceAll("[^a-zA-Z0-9.-]", "_");
+        File file = new File(uploadDirectory, safeFileName);
+        try (InputStream fileContent = filePart.getInputStream();
+             FileOutputStream fos = new FileOutputStream(file)) {
+            byte[] buffer = new byte[1024];
+            int bytesRead;
+            while ((bytesRead = fileContent.read(buffer)) != -1) {
+                fos.write(buffer, 0, bytesRead);
+            }
+        }
+        return file.getAbsolutePath(); // Return the file path
+    }
     private void handleUpdateAssignment(HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
         String assignmentIdStr = request.getParameter("assignmentId");
 
@@ -249,43 +282,70 @@ private static final Logger logger = Logger.getLogger(TeacherController.class.ge
     }
 
     private void handleRegistration(HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
-        String fname = request.getParameter("fname");
-        String lname = request.getParameter("lname");
-        String email = request.getParameter("email");
+        String fname = ValidationUtil.sanitizeInput(request.getParameter("fname"));
+        String lname = ValidationUtil.sanitizeInput(request.getParameter("lname"));
+        String email = ValidationUtil.sanitizeInput(request.getParameter("email"));
         String password = request.getParameter("password");
-        String course = request.getParameter("course");
+        String course = ValidationUtil.sanitizeInput(request.getParameter("course"));
         String hireDateString = request.getParameter("hireDate");
         DateTimeFormatter pattern = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
-        boolean emailexist = service.emailExists(email);
-
-        if(emailexist) {
-            request.setAttribute("formName", "Teacher Registration Form");
-            request.setAttribute("message2", "Email already exists");
-            request.getRequestDispatcher("WEB-INF/TeacherForm.jsp").forward(request, response);
-            return;
-        }
-
         try {
-            if (fname == null || lname == null || email == null || hireDateString == null) {
-                throw new IllegalArgumentException("All fields are required.");
+            // Validate inputs
+            if (fname == null || fname.isEmpty() || lname == null || lname.isEmpty()) {
+                throw new IllegalArgumentException("First name and last name are required.");
             }
-            LocalDate hireDate = LocalDate.parse(hireDateString, pattern);
-            Teacher teacher = new Teacher(fname, lname, email,course, password, hireDate);
-            service.addTeacher(teacher);
             
-            // Create session after successful registration
+            if (!ValidationUtil.isValidEmail(email)) {
+                throw new IllegalArgumentException("Invalid email format.");
+            }
+            
+            if (!ValidationUtil.isValidPassword(password)) {
+                throw new IllegalArgumentException("Password must be at least 8 characters long and contain uppercase, lowercase, number and special character.");
+            }
+            
+            if (course == null || course.isEmpty()) {
+                throw new IllegalArgumentException("Course is required.");
+            }
+            
+            if (hireDateString == null || hireDateString.isEmpty()) {
+                throw new IllegalArgumentException("Hire date is required.");
+            }
+            
+            // Check if email already exists
+            if (service.emailExists(email)) {
+                request.setAttribute("formName", "Teacher Registration Form");
+                request.setAttribute("message2", "Email already exists");
+                request.getRequestDispatcher("WEB-INF/TeacherForm.jsp").forward(request, response);
+                return;
+            }
+
+            LocalDate hireDate = LocalDate.parse(hireDateString, pattern);
+            Teacher teacher = new Teacher(fname, lname, email, course, password, hireDate);
+            
+
+           service.addTeacher(teacher);
             HttpSession session = request.getSession();
             session.setAttribute("teacherId", teacher.getId());
             session.setAttribute("teacherName", teacher.getFirstName() + " " + teacher.getLastName());
             session.setAttribute("userType", "teacher");
             session.setMaxInactiveInterval(30 * 60); // 30 minutes timeout
+            response.sendRedirect(request.getContextPath() + "/teacherHome");
 
-            response.sendRedirect("WEB-INF/Teacher/teacherHome.jsp");
+            
         } catch (IllegalArgumentException e) {
-            response.sendError(HttpServletResponse.SC_BAD_REQUEST, e.getMessage());
+            request.setAttribute("formName", "Teacher Registration Form");
+            request.setAttribute("message2", e.getMessage());
+            request.setAttribute("fname", fname);
+            request.setAttribute("lname", lname);
+            request.setAttribute("email", email);
+            request.setAttribute("course", course);
+            request.setAttribute("hireDate", hireDateString);
+            request.getRequestDispatcher("WEB-INF/TeacherForm.jsp").forward(request, response);
         } catch (Exception e) {
-            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "An error occurred while processing your request.");
+            request.setAttribute("formName", "Teacher Registration Form");
+            request.setAttribute("message2", "Registration failed: " + e.getMessage());
+            request.getRequestDispatcher("WEB-INF/TeacherForm.jsp").forward(request, response);
         }
     }
     private void handleDeleteAssignment(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {

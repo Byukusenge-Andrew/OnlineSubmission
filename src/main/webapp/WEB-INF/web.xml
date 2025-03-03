@@ -26,6 +26,14 @@
 
     </servlet-mapping>
     <servlet>
+        <servlet-name>DownloadAssignment</servlet-name>
+        <servlet-class>com.submission.mis.onlinesubmission.controllers.DownloadAssignmentServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>DownloadAssignment</servlet-name>
+        <url-pattern>/downloadAssignment</url-pattern>
+    </servlet-mapping>
+    <servlet>
         <servlet-name>StudentController</servlet-name>
         <servlet-class>com.submission.mis.onlinesubmission.controllers.StudentController</servlet-class>
     </servlet>
@@ -40,6 +48,13 @@
         <url-pattern>/studentProfile</url-pattern>
 
     </servlet-mapping>
+    <session-config>
+        <cookie-config>
+            <http-only>false</http-only>
+            <secure>false</secure>
+        </cookie-config>
+    </session-config>
+
 
     <!-- Teacher Servlet Configuration -->
     <servlet>
@@ -58,18 +73,6 @@
         <url-pattern>/teacherProfile</url-pattern>
     </servlet-mapping>
 
-    <!-- Assignment Servlet Configuration -->
-    <servlet>
-        <servlet-name>AssignmentController</servlet-name>
-        <servlet-class>com.submission.mis.onlinesubmission.controllers.AssignmentController</servlet-class>
-    </servlet>
-    <servlet-mapping>
-        <servlet-name>AssignmentController</servlet-name>
-        <url-pattern>/aCreateAssignment</url-pattern>
-        <url-pattern>/aUpdateAssignment</url-pattern>
-        <url-pattern>/aDeleteAssignment</url-pattern>
-        <url-pattern>/aViewAssignment</url-pattern>
-    </servlet-mapping>
 
     <!-- Static Resource Configuration -->
     <servlet-mapping>

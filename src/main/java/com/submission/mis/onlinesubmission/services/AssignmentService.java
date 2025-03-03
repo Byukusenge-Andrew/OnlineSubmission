@@ -11,13 +11,13 @@ import java.util.List;
 import java.util.UUID;
 
 import org.hibernate.Session;
+import org.hibernate.query.Query;
 
 import com.submission.mis.onlinesubmission.models.Assignment;
 import com.submission.mis.onlinesubmission.models.Student;
-import com.submission.mis.onlinesubmission.models.Teacher;
 import com.submission.mis.onlinesubmission.models.Submission;
+import com.submission.mis.onlinesubmission.models.Teacher;
 import com.submission.mis.onlinesubmission.util.HibernateUtil;
-import org.hibernate.query.Query;
 
 public class AssignmentService {
     private static AssignmentService instance;

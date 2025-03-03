@@ -15,51 +15,71 @@ import java.util.UUID;
 @Entity
 public class Teacher {
 
-    /** Unique identifier for the teacher */
+    /**
+     * Unique identifier for the teacher
+     */
     @Id
     @GeneratedValue(generator = "UUID")
     @GenericGenerator(
-        name = "UUID",
-        strategy = "org.hibernate.id.UUIDGenerator"
+            name = "UUID",
+            strategy = "org.hibernate.id.UUIDGenerator"
     )
     @Column(name = "id", updatable = false, nullable = false)
     private UUID id;
 
-    /** Teacher's first name */
+    /**
+     * Teacher's first name
+     */
     private String firstName;
 
-    /** Teacher's last name */
+    /**
+     * Teacher's last name
+     */
     private String lastName;
 
-    /** Teacher's email address (used for login) */
+    /**
+     * Teacher's email address (used for login)
+     */
     private String email;
 
-    /** Course */
+    /**
+     * Course
+     */
     private String course;
 
-    /** Teacher's hashed password */
+    /**
+     * Teacher's hashed password
+     */
     @Column(nullable = false)
     private String password;
 
-    /** Date when the teacher was hired */
+    /**
+     * Date when the teacher was hired
+     */
     private LocalDate hireDate;
 
-    /** Default constructor required by JPA */
-    public Teacher() {}
+    /**
+     * Default constructor required by JPA
+     */
+    public Teacher() {
+    }
+
 
     /**
      * Creates a new Teacher with the specified details.
+     *
      * @param firstName The teacher's first name
-     * @param lastName The teacher's last name
-     * @param email The teacher's email address
-     * @param password The teacher's password (will be hashed)
-     * @param hireDate The date when the teacher was hired
-     * @param course The teacher's course
+     * @param lastName  The teacher's last name
+     * @param email     The teacher's email address
+     * @param password  The teacher's password (will be hashed)
+     * @param hireDate  The date when the teacher was hired
+     * @param course    The teacher's course
      */
-    public Teacher(String firstName, String lastName, String email,String course, String password, LocalDate hireDate) {
+    public Teacher(String firstName, String lastName, String email, String course, String password, LocalDate hireDate) {
         this.firstName = firstName;
         this.lastName = lastName;
         this.email = email;
+
         this.password = password;
         this.hireDate = hireDate;
         this.course = course;
@@ -109,7 +129,7 @@ public class Teacher {
         return lastName;
     }
 
-    public String getName(){
+    public String getName() {
         return firstName + " " + lastName;
     }
 
@@ -124,4 +144,5 @@ public class Teacher {
     public void setEmail(String email) {
         this.email = email;
     }
+
 }

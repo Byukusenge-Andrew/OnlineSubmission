@@ -1,49 +1,36 @@
 package com.submission.mis.onlinesubmission.controllers;
 
-import java.io.*;
+import java.io.IOException;
+import java.util.List;
+import java.util.UUID;
+
 import com.submission.mis.onlinesubmission.models.Assignment;
-import com.submission.mis.onlinesubmission.models.Teacher;
 import com.submission.mis.onlinesubmission.services.AssignmentService;
+import com.submission.mis.onlinesubmission.services.StudentService;
+
 import jakarta.servlet.ServletException;
-import jakarta.servlet.annotation.*;
+import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.util.List;
 
-/**
- * Servlet controller for handling assignment-related operations.
- * Manages assignment creation, updates, and submissions.
- */
+@WebServlet("/assignments")
 public class AssignmentController extends HttpServlet {
-    /** Service for handling assignment operations */
     private final AssignmentService assignmentService = AssignmentService.getInstance();
+    private final StudentService studentService = StudentService.getInstance();
 
-    /**
-     * Handles GET requests for assignment operations.
-     * @param request The HTTP request
-     * @param response The HTTP response
-     * @throws IOException If an I/O error occurs
-     */
     @Override
-    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
-        // Implementation
-    }
+    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        // Assuming the student ID is stored in the session
+        UUID studentId = (UUID) request.getSession().getAttribute("studentId");
+        if (studentId == null) {
+            response.sendRedirect(request.getContextPath() + "/studentLogin");
+            return;
+        }
 
-    /**
-     * Handles POST requests for assignment operations.
-     * @param request The HTTP request
-     * @param response The HTTP response
-     * @throws ServletException If a servlet error occurs
-     * @throws IOException If an I/O error occurs
-     */
-    @Override
-    protected void doPost(HttpServletRequest request, HttpServletResponse response) 
-            throws ServletException, IOException {
-        // Implementation
-    }
-
-    public void destroy() {
+        // Fetch assignments for the student
+        List<Assignment> assignments = assignmentService.getAllAssignments(); // Adjust this method as needed
+        request.setAttribute("assignments", assignments);
+        request.getRequestDispatcher("WEB-INF/Student/viewAssignment.jsp").forward(request, response);
     }
 }

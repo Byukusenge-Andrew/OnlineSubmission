@@ -1,102 +1,71 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%@ page import="com.submission.mis.onlinesubmission.models.Student" %>
 <%@ page import="com.submission.mis.onlinesubmission.services.StudentStatsService.StudentStats" %>
-<%
-    Student student = (Student) request.getAttribute("student");
-    StudentStats stats = (StudentStats) request.getAttribute("stats");
-%>
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Student Profile</title>
-    <link rel="stylesheet" type="text/css" href="${pageContext.request.contextPath}/css/styles.css">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-</head>
-<body>
-    <div class="app-container">
-        <nav class="navbar">
-            <div class="nav-container">
-                <div class="nav-start">
-                    <a href="${pageContext.request.contextPath}/studentHome" class="nav-link">
-                        <i class="fas fa-home"></i> Home
-                    </a>
-                    <a href="${pageContext.request.contextPath}/viewAssignments" class="nav-link">
-                        <i class="fas fa-tasks"></i> Assignments
-                    </a>
-                    <a href="${pageContext.request.contextPath}/studentProfile" class="nav-link active">
-                        <i class="fas fa-user"></i> Profile
-                    </a>
-                </div>
-                <div class="nav-end">
-                    <span class="welcome-text">Welcome, <%= student.getFirstName() %></span>
-                    <a href="${pageContext.request.contextPath}/logout" class="btn btn-outline">
-                        <i class="fas fa-sign-out-alt"></i> Logout
-                    </a>
-                </div>
-            </div>
-        </nav>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<jsp:include page="../common/header.jsp">
+    <jsp:param name="title" value="Student Profile" />
+</jsp:include>
 
-        <div class="main-content">
-            <div class="card">
-                <div class="card-header">
-                    <h2><i class="fas fa-user-graduate"></i> Student Profile</h2>
-                </div>
-                <div class="card-body">
-                    <div class="profile-info">
-                        <h3>Personal Information</h3>
-                        <p><strong>Name:</strong> <%= student.getFirstName() + " " + student.getLastName() %></p>
-                        <p><strong>Email:</strong> <%= student.getEmail() %></p>
-                        <p><strong>Age:</strong> <%= student.getAge() %></p>
-                        <p><strong>Birth Date:</strong> <%= student.getBirthDate() %></p>
-                    </div>
-                    
-                    <div class="stats-section mt-6">
-                        <h3>Assignment Statistics</h3>
-                        <div class="stats-grid">
-                            <div class="stat-card bg-primary-light">
-                                <div class="stat-icon"><i class="fas fa-tasks"></i></div>
-                                <div class="stat-content">
-                                    <h3>Total Assignments</h3>
-                                    <div class="stat-value"><%= stats.getTotalAssignments() %></div>
-                                </div>
+<jsp:include page="../common/studentNav.jsp" />
+
+<div class="container mx-auto px-4 py-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold text-gray-800 mb-6">Student Profile</h1>
+        
+        <div class="bg-white rounded-lg shadow-md overflow-hidden">
+            <div class="bg-primary text-white p-6">
+                <h2 class="text-2xl font-bold">${student.firstName} ${student.lastName}</h2>
+                <p class="text-gray-100">${student.email}</p>
+            </div>
+            
+            <div class="p-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-700 mb-4">Personal Information</h3>
+                        <div class="space-y-3">
+                            <div>
+                                <p class="text-sm text-gray-500">Age</p>
+                                <p class="font-medium">${student.age}</p>
                             </div>
-                            
-                            <div class="stat-card bg-success-light">
-                                <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
-                                <div class="stat-content">
-                                    <h3>Submitted</h3>
-                                    <div class="stat-value"><%= stats.getSubmittedAssignments() %></div>
-                                </div>
-                            </div>
-                            
-                            <div class="stat-card bg-warning-light">
-                                <div class="stat-icon"><i class="fas fa-clock"></i></div>
-                                <div class="stat-content">
-                                    <h3>Pending</h3>
-                                    <div class="stat-value"><%= stats.getPendingAssignments() %></div>
-                                </div>
-                            </div>
-                            
-                            <div class="stat-card bg-error-light">
-                                <div class="stat-icon"><i class="fas fa-exclamation-circle"></i></div>
-                                <div class="stat-content">
-                                    <h3>Overdue</h3>
-                                    <div class="stat-value"><%= stats.getOverdueAssignments() %></div>
-                                </div>
+                            <div>
+                                <p class="text-sm text-gray-500">Date of Birth</p>
+                                <p class="font-medium">${student.birthDate}</p>
                             </div>
                         </div>
-                        
-                        <div class="progress-container mt-6">
-                            <h3>Completion Rate</h3>
-                            <div class="progress-bar">
-                                <div class="progress-fill" style="width: <%= stats.getCompletionRate() %>%"></div>
+                    </div>
+                    
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-700 mb-4">Submission Statistics</h3>
+                        <div class="space-y-3">
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-600">Completion Rate:</span>
+                                <div class="w-2/3 bg-gray-200 rounded-full h-2.5">
+                                    <div class="bg-primary h-2.5 rounded-full" style="width: ${stats.completionRate}%"></div>
+                                </div>
+                                <span class="text-sm font-medium">${Math.round(stats.completionRate)}%</span>
                             </div>
-                            <p class="progress-text"><%= String.format("%.1f%%", stats.getCompletionRate()) %> Complete</p>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Total Assignments:</span>
+                                <span class="font-medium">${stats.totalAssignments}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Submitted:</span>
+                                <span class="font-medium text-success">${stats.submittedAssignments}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Pending:</span>
+                                <span class="font-medium text-warning">${stats.pendingAssignments}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Overdue:</span>
+                                <span class="font-medium text-danger">${stats.overdueAssignments}</span>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-</body>
-</html> 
+</div>
+
+<jsp:include page="../common/footer.jsp" /> 
