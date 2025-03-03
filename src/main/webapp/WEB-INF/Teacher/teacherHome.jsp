@@ -11,11 +11,11 @@
     <jsp:param name="title" value="Teacher Dashboard" />
 </jsp:include>
 
-<jsp:include page="../common/teacherNav.jsp" />
+<%--<jsp:include page="../common/teacherNav.jsp" />--%>
 
 <div class="container mx-auto px-4 py-8">
     <h1 class="text-3xl font-bold text-gray-800 mb-6">Welcome, ${sessionScope.teacherName}!</h1>
-    
+    <p><%=session.getAttribute("teacherId")%></p>
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <!-- Stats Cards -->
         <div class="card p-6 bg-white rounded-lg shadow-md">

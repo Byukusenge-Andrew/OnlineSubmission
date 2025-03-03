@@ -19,10 +19,15 @@ import com.submission.mis.onlinesubmission.models.Submission;
 import com.submission.mis.onlinesubmission.models.Teacher;
 import com.submission.mis.onlinesubmission.util.HibernateUtil;
 
-public class AssignmentService {
+import jakarta.servlet.ServletContext;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.Part;
+
+public class AssignmentService extends HttpServlet {
     private static AssignmentService instance;
     private final TeacherStatsService teacherStatsService = TeacherStatsService.getInstance();
     private final SubmissionStatsService submissionStatsService = SubmissionStatsService.getInstance();
+    private ServletContext servletContext;
 
     private AssignmentService() {}
 
@@ -31,6 +36,15 @@ public class AssignmentService {
             instance = new AssignmentService();
         }
         return instance;
+    }
+
+    public void setServletContext(ServletContext servletContext) {
+        this.servletContext = servletContext;
+    }
+
+    @Override
+    public ServletContext getServletContext() {
+        return servletContext;
     }
 
     public void addAssignment(Assignment assignment) throws Exception {
@@ -283,6 +297,95 @@ public class AssignmentService {
         } finally {
             HibernateUtil.closeSession(session);
         }
+    }
+
+    public List<Assignment> getAssignmentsForClass(String classroom) {
+        Session session = HibernateUtil.getSession();
+        try {
+            return session.createQuery(
+                "FROM Assignment a WHERE a.targetClass = :classroom ORDER BY a.deadline", 
+                Assignment.class)
+                .setParameter("classroom", classroom)
+                .list();
+        } finally {
+            HibernateUtil.closeSession(session);
+        }
+    }
+
+    public void addAssignment(Assignment assignment, Part filePart) throws Exception {
+        if (servletContext == null) {
+            throw new IllegalStateException("ServletContext not initialized");
+        }
+        
+        // Generate UUID before creating directories
+        if (assignment.getId() == null) {
+            assignment.setId(UUID.randomUUID());
+        }
+        
+        UUID assignmentId = assignment.getId();
+        if (assignmentId == null) {
+            throw new IllegalStateException("Failed to generate assignment ID");
+        }
+        
+        String baseDir = servletContext.getRealPath("/uploads/assignments");
+        String uploadDir = baseDir + "/" + assignment.getTargetClass() + "/" + 
+                          assignmentId.toString();
+        File dir = new File(uploadDir);
+        if (!dir.exists()) {
+            dir.mkdirs();
+        }
+
+        // Save the assignment file
+        if (filePart != null && filePart.getSize() > 0) {
+            String fileName = filePart.getSubmittedFileName();
+            String filePath = uploadDir + "/" + fileName;
+            
+            try (InputStream input = filePart.getInputStream();
+                 FileOutputStream output = new FileOutputStream(filePath)) {
+                byte[] buffer = new byte[1024];
+                int length;
+                while ((length = input.read(buffer)) > 0) {
+                    output.write(buffer, 0, length);
+                }
+            }
+            
+            assignment.setAssignmentFileName(fileName);
+            assignment.setAssignmentFilePath(filePath);
+        }
+
+        // Create submissions folder
+        String submissionFolder = uploadDir + "/submissions";
+        new File(submissionFolder).mkdirs();
+        assignment.setSubmissionFolderPath(submissionFolder);
+
+        // Save assignment to database
+        HibernateUtil.executeInTransaction(session -> {
+            session.persist(assignment);
+        });
+    }
+
+    public void handleSubmission(Submission submission, Part filePart) throws Exception {
+        Assignment assignment = submission.getAssignment();
+        String submissionPath = assignment.getSubmissionFolderPath() + "/" + 
+                              submission.getStudent().getId().toString() + "_" +
+                              filePart.getSubmittedFileName();
+
+        // Save the submission file
+        try (InputStream input = filePart.getInputStream();
+             FileOutputStream output = new FileOutputStream(submissionPath)) {
+            byte[] buffer = new byte[1024];
+            int length;
+            while ((length = input.read(buffer)) > 0) {
+                output.write(buffer, 0, length);
+            }
+        }
+
+        submission.setFilePath(submissionPath);
+        submission.setFileName(filePart.getSubmittedFileName());
+
+        HibernateUtil.executeInTransaction(session -> {
+            session.persist(submission);
+        });
     }
 }
 

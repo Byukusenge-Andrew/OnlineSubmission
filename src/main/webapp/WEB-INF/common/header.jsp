@@ -51,4 +51,40 @@
         }
     </style>
 </head>
-<body class="bg-gray-100 min-h-screen"> 
+<body class="bg-gray-100 min-h-screen">
+    <nav class="bg-primary shadow-md">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex justify-between h-16">
+                <div class="flex">
+                    <a href="${pageContext.request.contextPath}/index.jsp" class="flex items-center text-white font-bold text-xl">
+                        Online Submission
+                    </a>
+                </div>
+                
+                <div class="flex items-center">
+                    <% if (session != null && session.getAttribute("userType") != null) { %>
+                        <% if (session.getAttribute("userType").equals("student")) { %>
+                            <a href="${pageContext.request.contextPath}/studentHome" 
+                               class="text-white hover:text-gray-200 px-3 py-2">Home</a>
+                            <a href="${pageContext.request.contextPath}/viewAssignments" 
+                               class="text-white hover:text-gray-200 px-3 py-2">Assignments</a>
+                            <a href="${pageContext.request.contextPath}/studentProfile" 
+                               class="text-white hover:text-gray-200 px-3 py-2">Profile</a>
+                            <a href="${pageContext.request.contextPath}/logout" 
+                               class="text-white hover:text-gray-200 px-3 py-2 ml-4">Logout</a>
+                        <% } else if (session.getAttribute("userType").equals("teacher")) { %>
+                            <a href="${pageContext.request.contextPath}/teacherHome" 
+                               class="text-white hover:text-gray-200 px-3 py-2">Home</a>
+                            <a href="${pageContext.request.contextPath}/teacherAssignments" 
+                               class="text-white hover:text-gray-200 px-3 py-2">Assignments</a>
+                            <a href="${pageContext.request.contextPath}/teacherProfile" 
+                               class="text-white hover:text-gray-200 px-3 py-2">Profile</a>
+                            <a href="${pageContext.request.contextPath}/logout" 
+                               class="text-white hover:text-gray-200 px-3 py-2 ml-4">Logout</a>
+                        <% } %>
+                    <% } %>
+                </div>
+            </div>
+        </div>
+    </nav>
+    <main class="max-w-7xl mx-auto px-4 py-6"> 

@@ -1,137 +1,123 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <web-app xmlns="https://jakarta.ee/xml/ns/jakartaee"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="https://jakarta.ee/xml/ns/jakartaee https://jakarta.ee/xml/ns/jakartaee/web-app_6_0.xsd"
-         version="6.0">
-    <welcome-file-list>
-        <welcome-file>index.jsp</welcome-file>
-    </welcome-file-list>
-    <servlet>
-        <servlet-name>DownloadServlet</servlet-name>
-        <servlet-class>com.submission.mis.onlinesubmission.controllers.DownloadServlet</servlet-class>
-    </servlet>
-    <servlet-mapping>
-        <servlet-name>DownloadServlet</servlet-name>
-        <url-pattern>/downloadSubmission</url-pattern>
-    </servlet-mapping>
+         xsi:schemaLocation="https://jakarta.ee/xml/ns/jakartaee https://jakarta.ee/xml/ns/jakartaee/web-app_5_0.xsd"
+         version="5.0">
 
-    <servlet>
-        <servlet-name>logOut</servlet-name>
-        <servlet-class>com.submission.mis.onlinesubmission.controllers.LogoutServlet</servlet-class>
-
-    </servlet>
-    <servlet-mapping>
-        <servlet-name>logOut</servlet-name>
-        <url-pattern>/logout</url-pattern>
-
-    </servlet-mapping>
-    <servlet>
-        <servlet-name>DownloadAssignment</servlet-name>
-        <servlet-class>com.submission.mis.onlinesubmission.controllers.DownloadAssignmentServlet</servlet-class>
-    </servlet>
-    <servlet-mapping>
-        <servlet-name>DownloadAssignment</servlet-name>
-        <url-pattern>/downloadAssignment</url-pattern>
-    </servlet-mapping>
+    <!-- File Upload Configuration -->
     <servlet>
         <servlet-name>StudentController</servlet-name>
         <servlet-class>com.submission.mis.onlinesubmission.controllers.StudentController</servlet-class>
+        <multipart-config>
+            <file-size-threshold>1048576</file-size-threshold> <!-- 1MB -->
+            <max-file-size>10485760</max-file-size> <!-- 10MB -->
+            <max-request-size>15728640</max-request-size> <!-- 15MB -->
+        </multipart-config>
     </servlet>
-    <servlet-mapping>
-        <servlet-name>StudentController</servlet-name>
-        <url-pattern>/student/*</url-pattern>
-        <url-pattern>/studentRegistration</url-pattern>
-        <url-pattern>/studentLogin</url-pattern>
-        <url-pattern>/studentHome</url-pattern>
-        <url-pattern>/viewAssignments</url-pattern>
-        <url-pattern>/submitAssignment</url-pattern>
-        <url-pattern>/studentProfile</url-pattern>
+    <servlet>
+        <servlet-name>logout</servlet-name>
+        <servlet-class>com.submission.mis.onlinesubmission.controllers.LogoutServlet</servlet-class>
+    </servlet>
 
-    </servlet-mapping>
-    <session-config>
-        <cookie-config>
-            <http-only>false</http-only>
-            <secure>false</secure>
-        </cookie-config>
-    </session-config>
-
-
-    <!-- Teacher Servlet Configuration -->
     <servlet>
         <servlet-name>TeacherController</servlet-name>
         <servlet-class>com.submission.mis.onlinesubmission.controllers.TeacherController</servlet-class>
+        <multipart-config>
+            <file-size-threshold>1048576</file-size-threshold>
+            <max-file-size>10485760</max-file-size>
+            <max-request-size>15728640</max-request-size>
+        </multipart-config>
     </servlet>
+
+    <servlet>
+        <servlet-name>DownloadAssignmentFileServlet</servlet-name>
+        <servlet-class>com.submission.mis.onlinesubmission.controllers.DownloadAssignmentFileServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>logout</servlet-name>
+        <url-pattern></url-pattern>
+    </servlet-mapping>
+
+    <!-- Servlet Mappings -->
+    <servlet-mapping>
+        <servlet-name>StudentController</servlet-name>
+        <url-pattern>/studentRegistration</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>StudentController</servlet-name>
+        <url-pattern>/studentLogin</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>StudentController</servlet-name>
+        <url-pattern>/studentHome</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>StudentController</servlet-name>
+        <url-pattern>/viewAssignments</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>StudentController</servlet-name>
+        <url-pattern>/submitAssignment</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>StudentController</servlet-name>
+        <url-pattern>/studentProfile</url-pattern>
+    </servlet-mapping>
+
     <servlet-mapping>
         <servlet-name>TeacherController</servlet-name>
         <url-pattern>/teacherRegistration</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>TeacherController</servlet-name>
         <url-pattern>/teacherLogin</url-pattern>
-        <url-pattern>/teacherAssignments</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>TeacherController</servlet-name>
         <url-pattern>/teacherHome</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>TeacherController</servlet-name>
+        <url-pattern>/teacherAssignments</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>TeacherController</servlet-name>
         <url-pattern>/addAssignment</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>TeacherController</servlet-name>
         <url-pattern>/updateAssignment</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>TeacherController</servlet-name>
         <url-pattern>/deleteAssignment</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>TeacherController</servlet-name>
         <url-pattern>/teacherProfile</url-pattern>
     </servlet-mapping>
 
-
-    <!-- Static Resource Configuration -->
     <servlet-mapping>
-        <servlet-name>default</servlet-name>
-        <url-pattern>/css/*</url-pattern>
+        <servlet-name>DownloadAssignmentFileServlet</servlet-name>
+        <url-pattern>/downloadAssignmentFile</url-pattern>
     </servlet-mapping>
 
-    <!-- Session Filter Configuration -->
-    <filter>
-        <filter-name>SessionFilter</filter-name>
-        <filter-class>com.submission.mis.onlinesubmission.filters.SessionFilter</filter-class>
-    </filter>
-    <filter-mapping>
-        <filter-name>SessionFilter</filter-name>
-        <url-pattern>/WEB-INF/Student/*</url-pattern>
-        <url-pattern>/WEB-INF/Teacher/*</url-pattern>
-    </filter-mapping>
+    <!-- Session Configuration -->
+    <session-config>
+        <session-timeout>30</session-timeout>
+    </session-config>
 
     <!-- Security Constraints -->
     <security-constraint>
         <web-resource-collection>
-            <web-resource-name>Protected Teacher Area</web-resource-name>
-            <url-pattern>/WEB-INF/Teacher/*</url-pattern>
+            <web-resource-name>Protected Resources</web-resource-name>
+            <url-pattern>/WEB-INF/*</url-pattern>
         </web-resource-collection>
-        <auth-constraint>
-            <role-name>teacher</role-name>
-        </auth-constraint>
+        <auth-constraint />
     </security-constraint>
 
-    <security-constraint>
-        <web-resource-collection>
-            <web-resource-name>Protected Student Area</web-resource-name>
-            <url-pattern>/WEB-INF/Student/*</url-pattern>
-        </web-resource-collection>
-        <auth-constraint>
-            <role-name>student</role-name>
-        </auth-constraint>
-    </security-constraint>
-
-    <!-- Security Roles -->
-    <security-role>
-        <role-name>teacher</role-name>
-    </security-role>
-    
-    <security-role>
-        <role-name>student</role-name>
-    </security-role>
-
-    <!-- Login Configuration -->
-    <login-config>
-        <auth-method>FORM</auth-method>
-        <form-login-config>
-            <form-login-page>/WEB-INF/TeacherLogin.jsp</form-login-page>
-            <form-error-page>/WEB-INF/error.jsp</form-error-page>
-        </form-login-config>
-    </login-config>
-
-    <context-param>
-        <param-name>file-upload-path</param-name>
-        <param-value>${catalina.base}/uploads</param-value>
-    </context-param>
+    <!-- Welcome File -->
+    <welcome-file-list>
+        <welcome-file>index.jsp</welcome-file>
+    </welcome-file-list>
 </web-app>

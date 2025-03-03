@@ -11,7 +11,6 @@ import java.util.logging.Logger;
 
 import com.submission.mis.onlinesubmission.models.Assignment;
 import com.submission.mis.onlinesubmission.models.Student;
-import com.submission.mis.onlinesubmission.models.Submission;
 import com.submission.mis.onlinesubmission.services.AssignmentService;
 import com.submission.mis.onlinesubmission.services.StudentService;
 import com.submission.mis.onlinesubmission.services.StudentStatsService;
@@ -25,7 +24,6 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import jakarta.servlet.http.Part;
 
-
 @MultipartConfig(
     fileSizeThreshold = 1024 * 1024, // 1 MB
     maxFileSize = 1024 * 1024 * 10,  // 10 MB
@@ -38,51 +36,81 @@ public class StudentController extends HttpServlet {
     private final StudentStatsService studentStatsService = StudentStatsService.getInstance();
 
     @Override
+    public void init() throws ServletException {
+        super.init();
+        assignmentService.setServletContext(getServletContext());
+    }
+
+    @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         String action = request.getServletPath();
-        HttpSession session = request.getSession(false);
         
+        // Allow access to registration and login pages without session
+        if ("/studentRegistration".equals(action)) {
+            request.setAttribute("formName", "Student Registration Form");
+            request.getRequestDispatcher("WEB-INF/form.jsp").forward(request, response);
+            return;
+        } else if ("/studentLogin".equals(action)) {
+            request.getRequestDispatcher("WEB-INF/Student/studentLogin.jsp").forward(request, response);
+            return;
+        }
+
+        // Check session for protected pages
+        HttpSession session = request.getSession(false);
         if (session == null || session.getAttribute("studentId") == null) {
-            if ("/studentLogin".equals(action)) {
-                request.getRequestDispatcher("WEB-INF/Student/studentLogin.jsp").forward(request, response);
-                return;
-            }
             response.sendRedirect(request.getContextPath() + "/studentLogin");
             return;
         }
 
-        // Proceed with other actions
-        if ("/studentHome".equals(action)) {
-            handleStudentHome(request, response);
-        } else if ("/studentRegistration".equals(action)) {
-            request.getRequestDispatcher("WEB-INF/form.jsp").forward(request, response);
-        } else if ("/viewAssignments".equals(action)) {
-            handleViewAssignments(request, response);
-        } else if("/submitAssignment".equals(action)) {
-            // Forward to the submission form
-            request.getRequestDispatcher("WEB-INF/Student/submitAssignment.jsp").forward(request, response);
-        } else if ("/studentProfile".equals(action)) {
-            handleStudentProfile(request, response);
-        } else if ("/downloadAssignment".equals(action)) {
-            handleDownloadAssignment(request, response);
-        } else {
-            response.sendError(HttpServletResponse.SC_NOT_FOUND, "Page not found.");
+        // Handle protected routes
+        try {
+            switch (action) {
+                case "/studentHome":
+                    handleStudentHome(request, response);
+                    break;
+                case "/viewAssignments":
+                    handleViewAssignments(request, response);
+                    break;
+                case "/submitAssignment":
+                    request.getRequestDispatcher("WEB-INF/Student/submitAssignment.jsp").forward(request, response);
+                    break;
+                case "/studentProfile":
+                    handleStudentProfile(request, response);
+                    break;
+                case "/downloadAssignment":
+                    handleDownloadAssignment(request, response);
+                    break;
+                default:
+                    response.sendError(HttpServletResponse.SC_NOT_FOUND, "Page not found");
+            }
+        } catch (Exception e) {
+            logger.severe("Error processing request: " + e.getMessage());
+            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "An error occurred while processing your request");
         }
     }
 
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         String action = request.getParameter("action");
-        System.out.println("Received action: " + action); // Log the action parameter
+        logger.info("Received POST action: " + action);
 
-        if ("register".equalsIgnoreCase(action)) {
-            handleRegistration(request, response);
-        } else if ("login".equalsIgnoreCase(action)) {
-            handleLogin(request, response);
-        } else if ("submitAssignment".equalsIgnoreCase(action)) {
-            handleAssignmentSubmission(request,response);
-        } else {
-            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid action.");
+        try {
+            switch (action.toLowerCase()) {
+                case "register":
+                    handleRegistration(request, response);
+                    break;
+                case "login":
+                    handleLogin(request, response);
+                    break;
+                case "submitassignment":
+                    handleAssignmentSubmission(request, response);
+                    break;
+                default:
+                    response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid action");
+            }
+        } catch (Exception e) {
+            logger.severe("Error processing POST request: " + e.getMessage());
+            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "An error occurred while processing your request");
         }
     }
 
@@ -93,65 +121,79 @@ public class StudentController extends HttpServlet {
         String password = request.getParameter("password");
         String dobString = request.getParameter("dob");
         String classroom = request.getParameter("classroom");
+
         try {
-            // Validate all inputs
-            if (!ValidationUtil.isValidName(firstname)) {
-                throw new IllegalArgumentException("Invalid first name format");
-            }
-            if (!ValidationUtil.isValidName(lastname)) {
-                throw new IllegalArgumentException("Invalid last name format");
-            }
-            if (!ValidationUtil.isValidEmail(email)) {
-                throw new IllegalArgumentException("Invalid email format");
-            }
-            if (!ValidationUtil.isValidPassword(password)) {
-                throw new IllegalArgumentException("Password must be at least 8 characters long and contain uppercase, lowercase, number and special character");
-            }
+            // Validate inputs
+            validateRegistrationInput(firstname, lastname, email, password, dobString, classroom);
             
             LocalDate dob = LocalDate.parse(dobString);
-            if (!ValidationUtil.isValidPastDate(dob)) {
-                throw new IllegalArgumentException("Date of birth cannot be in the future");
-            }
-            
             int age = LocalDate.now().getYear() - dob.getYear();
-            if (age < 16) {
-                throw new IllegalArgumentException("Student must be at least 16 years old");
-            }
             
-            // Check if email already exists
-            if (service.emailExists(email)) {
-                throw new IllegalArgumentException("Email already registered");
-            }
-            if(!ValidationUtil.isValidClass(classroom)) {
-                throw new IllegalArgumentException("Invalid email format");
-            }
-
+            // Create and save student
             Student student = new Student(firstname, lastname, email, password, age, dob, classroom);
-
             service.addStudent(student);
-            // Create session and store student data
+
+            // Create session
             HttpSession session = request.getSession();
             session.setAttribute("studentId", student.getId());
             session.setAttribute("classroom", student.getClassRoom());
             session.setAttribute("studentName", student.getFirstName() + " " + student.getLastName());
             session.setAttribute("userType", "student");
-
             session.setMaxInactiveInterval(30 * 60); // 30 minutes timeout
 
             response.sendRedirect(request.getContextPath() + "/studentHome");
-
-            
         } catch (IllegalArgumentException e) {
+            request.setAttribute("formName", "Student Registration Form");
             request.setAttribute("error", e.getMessage());
-            request.setAttribute("firstname", firstname);
-            request.setAttribute("lastname", lastname);
-            request.setAttribute("email", email);
-            request.setAttribute("dob", dobString);
+            setRegistrationAttributes(request, firstname, lastname, email, dobString, classroom);
             request.getRequestDispatcher("WEB-INF/form.jsp").forward(request, response);
         } catch (Exception e) {
-            request.setAttribute("error", "Registration failed: " + e.getMessage());
-            request.getRequestDispatcher("WEB-INF/form.jsp").forward(request, response);
+            throw new RuntimeException(e);
         }
+    }
+
+    // Helper method to validate registration input
+    private void validateRegistrationInput(String firstname, String lastname, String email, 
+                                        String password, String dobString, String classroom) {
+        if (!ValidationUtil.isValidName(firstname)) {
+            throw new IllegalArgumentException("Invalid first name format");
+        }
+        if (!ValidationUtil.isValidName(lastname)) {
+            throw new IllegalArgumentException("Invalid last name format");
+        }
+        if (!ValidationUtil.isValidEmail(email)) {
+            throw new IllegalArgumentException("Invalid email format");
+        }
+        if (!ValidationUtil.isValidPassword(password)) {
+            throw new IllegalArgumentException("Password must be at least 8 characters long and contain uppercase, lowercase, number and special character");
+        }
+        if (!ValidationUtil.isValidClass(classroom)) {
+            throw new IllegalArgumentException("Invalid classroom format");
+        }
+        
+        LocalDate dob = LocalDate.parse(dobString);
+        if (!ValidationUtil.isValidPastDate(dob)) {
+            throw new IllegalArgumentException("Date of birth cannot be in the future");
+        }
+        
+        int age = LocalDate.now().getYear() - dob.getYear();
+        if (age < 16) {
+            throw new IllegalArgumentException("Student must be at least 16 years old");
+        }
+        
+        if (service.emailExists(email)) {
+            throw new IllegalArgumentException("Email already registered");
+        }
+    }
+
+    // Helper method to set registration attributes
+    private void setRegistrationAttributes(HttpServletRequest request, String firstname, 
+                                         String lastname, String email, String dob, String classroom) {
+        request.setAttribute("firstname", firstname);
+        request.setAttribute("lastname", lastname);
+        request.setAttribute("email", email);
+        request.setAttribute("dob", dob);
+        request.setAttribute("classroom", classroom);
     }
 
     private void handleLogin(HttpServletRequest request, HttpServletResponse response) throws IOException {
@@ -210,36 +252,16 @@ public class StudentController extends HttpServlet {
     private void handleViewAssignments(HttpServletRequest request, HttpServletResponse response) 
             throws ServletException, IOException {
         try {
-            HttpSession session = request.getSession(false);
-            if (session == null || session.getAttribute("studentId") == null) {
-                response.sendRedirect(request.getContextPath() + "/studentLogin");
-                return;
-            }
-
-            UUID studentId = (UUID) session.getAttribute("studentId");
-            Student student = service.getStudentById(studentId);
+            HttpSession session = request.getSession();
+            String classroom = (String) session.getAttribute("classroom");
             
-            if (student == null) {
-                throw new IllegalStateException("Student not found");
-            }
-
-            List<Assignment> assignments = assignmentService.getAllAssignments();
-            if (assignments != null) {
-                // Get submissions for each assignment
-                for (Assignment assignment : assignments) {
-                    List<Submission> submissions = assignmentService.getSubmissionsByAssignmentId(assignment.getId());
-                    assignment.setSubmissions(submissions);
-                }
-            }
-
+            List<Assignment> assignments = assignmentService.getAssignmentsForClass(classroom);
             request.setAttribute("assignments", assignments);
-            request.setAttribute("currentStudent", student);
             request.getRequestDispatcher("WEB-INF/Student/viewAssignment.jsp").forward(request, response);
-            
         } catch (Exception e) {
-            System.err.println("Error retrieving assignments: " + e.getMessage());
-            e.printStackTrace();
-            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Error retrieving assignments");
+            logger.severe("Error viewing assignments: " + e.getMessage());
+            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, 
+                "Error viewing assignments: " + e.getMessage());
         }
     }
 

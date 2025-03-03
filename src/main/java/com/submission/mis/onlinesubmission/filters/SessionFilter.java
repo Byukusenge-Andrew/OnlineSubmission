@@ -24,6 +24,12 @@ public class SessionFilter implements Filter {
         
         String requestPath = httpRequest.getRequestURI();
         
+        // Allow access to the registration page without a session
+        if (requestPath.contains("/WEB-INF/form.jsp")) {
+            chain.doFilter(request, response);
+            return;
+        }
+
         if (session == null || session.getAttribute("userType") == null) {
             httpResponse.sendRedirect(httpRequest.getContextPath() + "/index.jsp");
             return;

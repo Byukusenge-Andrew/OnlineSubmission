@@ -83,6 +83,16 @@ public class Assignment {
     @Column(nullable = true)
     private String filePath;
 
+    @Column(nullable = false)
+    private String targetClass; // The class this assignment is for (A, B, C, D)
+
+    @Column(nullable = false)
+    private String submissionFolderPath; // Path to store submissions for this assignment
+
+    // Add new fields for assignment file
+    private String assignmentFileName;
+    private String assignmentFilePath;
+
     /** Default constructor required by JPA */
     public Assignment() {}
 
@@ -205,5 +215,37 @@ public class Assignment {
 
     public void setFilePath(String filePath) {
         this.filePath = filePath;
+    }
+
+    public String getTargetClass() {
+        return targetClass;
+    }
+
+    public void setTargetClass(String targetClass) {
+        this.targetClass = targetClass;
+    }
+
+    public String getSubmissionFolderPath() {
+        return submissionFolderPath;
+    }
+
+    public void setSubmissionFolderPath(String submissionFolderPath) {
+        this.submissionFolderPath = submissionFolderPath;
+    }
+
+    public String getAssignmentFileName() {
+        return assignmentFileName;
+    }
+
+    public void setAssignmentFileName(String assignmentFileName) {
+        this.assignmentFileName = assignmentFileName;
+    }
+
+    public String getAssignmentFilePath() {
+        return assignmentFilePath;
+    }
+
+    public void setAssignmentFilePath(String assignmentFilePath) {
+        this.assignmentFilePath = assignmentFilePath;
     }
 }

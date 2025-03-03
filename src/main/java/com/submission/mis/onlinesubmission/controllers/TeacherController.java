@@ -30,13 +30,18 @@ import jakarta.servlet.http.Part;
 
 @MultipartConfig
 public class TeacherController extends HttpServlet {
-private static final Logger logger = Logger.getLogger(TeacherController.class.getName());
+    private static final Logger logger = Logger.getLogger(TeacherController.class.getName());
     private final TeacherService service = TeacherService.getInstance();
     private final AssignmentService assignmentService = AssignmentService.getInstance();
     private final TeacherStatsService teacherStatsService = TeacherStatsService.getInstance();
     private final SubmissionStatsService submissionStatsService = SubmissionStatsService.getInstance();
 
-    
+    @Override
+    public void init() throws ServletException {
+        super.init();
+        assignmentService.setServletContext(getServletContext());
+    }
+
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         String action = request.getServletPath();
@@ -54,7 +59,9 @@ private static final Logger logger = Logger.getLogger(TeacherController.class.ge
         } else if ("/teacherProfile".equalsIgnoreCase(action)) {
             handleTeacherProfile(request, response);
 
-        } else if ("/deleteAssignment".equalsIgnoreCase(action)) {
+        }
+
+        else if ("/deleteAssignment".equalsIgnoreCase(action)) {
             handleDeleteAssignment(request, response);
         }
 
@@ -168,57 +175,37 @@ private static final Logger logger = Logger.getLogger(TeacherController.class.ge
             request.getRequestDispatcher("WEB-INF/TeacherLogin.jsp").forward(request, response);
         }
     }
-    private void handleAddAssignment(HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
-        String title = ValidationUtil.sanitizeInput(request.getParameter("title"));
-        String description = ValidationUtil.sanitizeInput(request.getParameter("description"));
-        String deadlineStr = request.getParameter("deadline");
-        Part filePart = request.getPart("fileName");
-        String fileName = filePart.getSubmittedFileName();
-        InputStream fileContent = filePart.getInputStream();
-
+    private void handleAddAssignment(HttpServletRequest request, HttpServletResponse response) 
+            throws ServletException, IOException {
         try {
-            HttpSession session = request.getSession(false);
-            if (session == null || session.getAttribute("teacherId") == null) {
-                throw new IllegalStateException("Teacher not logged in");
-            }
+            String title = request.getParameter("title");
+            String description = request.getParameter("description");
+            String targetClass = request.getParameter("targetClass");
+            LocalDate deadline = LocalDate.parse(request.getParameter("deadline"));
+            Part filePart = request.getPart("assignmentFile");
+
+            // Get teacher from session
+            HttpSession session = request.getSession();
             UUID teacherId = (UUID) session.getAttribute("teacherId");
             Teacher teacher = service.getTeacherById(teacherId);
 
-            if (title == null || title.trim().length() < 3) {
-                throw new IllegalArgumentException("Title must be at least 3 characters long");
-            }
-            if (description == null || description.trim().length() < 10) {
-                throw new IllegalArgumentException("Description must be at least 10 characters long");
-            }
+            // Create and save assignment
+            Assignment assignment = new Assignment();
+            assignment.setTitle(title);
+            assignment.setDescription(description);
+            assignment.setTargetClass(targetClass);
+            assignment.setDeadline(deadline);
+            assignment.setTeacher(teacher);
+            assignment.setOwner(teacher);
+            assignment.setPosttime(LocalDate.now());
 
-            LocalDate postTime = LocalDate.now();
-            LocalDate deadline = LocalDate.parse(deadlineStr);
+            assignmentService.addAssignment(assignment, filePart);
 
-            String filePath = null; // Initialize filePath as null
-            if (filePart != null && filePart.getSize() > 0) {
-                // Save the file and get the file path
-                filePath = saveFile(filePart, fileName); // Ensure this method saves the file and returns the path
-            }
-
-            if (!ValidationUtil.isValidFutureDate(deadline)) {
-                throw new IllegalArgumentException("Deadline must be in the future");
-            }
-            if (postTime.isAfter(deadline)) {
-                throw new IllegalArgumentException("Post time cannot be after deadline");
-            }
-
-            // Create assignment with the teacher as owner
-            Assignment assignment = new Assignment(title, description, teacher.getCourse(), teacher, postTime, deadline, filePath);
-            assignmentService.addAssignment(assignment);
-
-            response.sendRedirect("teacherAssignments");
-
+            response.sendRedirect(request.getContextPath() + "/teacherAssignments");
         } catch (Exception e) {
-            request.setAttribute("error", e.getMessage());
-            request.setAttribute("title", title);
-            request.setAttribute("description", description);
-            request.setAttribute("deadline", deadlineStr);
-            request.getRequestDispatcher("WEB-INF/Teacher/addAssignment.jsp").forward(request, response);
+            logger.severe("Error adding assignment: " + e.getMessage());
+            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, 
+                "Error adding assignment: " + e.getMessage());
         }
     }
     private String saveFile(Part filePart, String fileName) throws IOException {
