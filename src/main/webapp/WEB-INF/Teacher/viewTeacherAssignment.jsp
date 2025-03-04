@@ -1,37 +1,15 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
-<%@ page import="java.util.List" %>
+<%@ page import="com.submission.mis.onlinesubmission.models.Teacher" %>
 <%@ page import="com.submission.mis.onlinesubmission.models.*" %>
 <%@ page import="java.time.format.DateTimeFormatter" %>
-<html>
-<head>
-    <title>View Assignments</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                    },
-                }
-            }
-        }
-    </script>
-</head>
-<body class="font-sans bg-gray-100 p-5 mx-8">
-<nav class="bg-white shadow  h-24  mb-8">
-    <div class="max-w-2xl mx-auto p-8 flex justify-between items-center">
-        <a href="teacherHome" class="text-xl font-semibold text-blue-600">Teacher Portal</a>
-        <ul class="flex space-x-4">
-            <li><a href="teacherHome" class="text-gray-700 hover:text-blue-600">Dashboard</a></li>
-            <li><a href="teacherAssignments" class="text-gray-700 hover:text-blue-600">Assignments</a></li>
-            <li><a href="addAssignment" class="text-gray-700 hover:text-blue-600">Add Assignment</a></li>
-            <li><a href="teacherProfile" class="text-gray-700 hover:text-blue-600">Profile</a></li>
-            <li><a href="logout" class="bg-red-500 text-white px-3 py-2 rounded hover:bg-red-600">Logout</a></li>
-        </ul>
-    </div>
-</nav>
+<%@ page import="java.util.List" %>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<jsp:include page="../common/header.jsp">
+    <jsp:param name="title" value="" />
+</jsp:include>
+
+<%--<jsp:include page="../common/teacherNav.jsp" />--%>
+
 
 <div class="max-w-6xl mx-auto bg-white shadow rounded-lg p-6">
     <h2 class="text-2xl font-bold text-center text-gray-800 mb-6">Assignments and Submissions</h2>

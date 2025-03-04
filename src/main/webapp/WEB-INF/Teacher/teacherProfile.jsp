@@ -6,7 +6,7 @@
     <jsp:param name="title" value="Teacher Profile" />
 </jsp:include>
 
-<jsp:include page="../common/teacherNav.jsp" />
+<%--<jsp:include page="../common/teacherNav.jsp" />--%>
 
 <div class="container mx-auto px-4 py-8">
     <div class="max-w-4xl mx-auto">

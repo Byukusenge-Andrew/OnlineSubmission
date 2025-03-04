@@ -7,6 +7,7 @@ import java.io.InputStream;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -316,52 +317,103 @@ public class AssignmentService extends HttpServlet {
         if (servletContext == null) {
             throw new IllegalStateException("ServletContext not initialized");
         }
-        
-        // Generate UUID before creating directories
-        if (assignment.getId() == null) {
-            assignment.setId(UUID.randomUUID());
-        }
-        
-        UUID assignmentId = assignment.getId();
-        if (assignmentId == null) {
-            throw new IllegalStateException("Failed to generate assignment ID");
-        }
-        
-        String baseDir = servletContext.getRealPath("/uploads/assignments");
-        String uploadDir = baseDir + "/" + assignment.getTargetClass() + "/" + 
-                          assignmentId.toString();
-        File dir = new File(uploadDir);
-        if (!dir.exists()) {
-            dir.mkdirs();
-        }
 
-        // Save the assignment file
-        if (filePart != null && filePart.getSize() > 0) {
-            String fileName = filePart.getSubmittedFileName();
-            String filePath = uploadDir + "/" + fileName;
-            
-            try (InputStream input = filePart.getInputStream();
-                 FileOutputStream output = new FileOutputStream(filePath)) {
-                byte[] buffer = new byte[1024];
-                int length;
-                while ((length = input.read(buffer)) > 0) {
-                    output.write(buffer, 0, length);
-                }
-            }
-            
-            assignment.setAssignmentFileName(fileName);
-            assignment.setAssignmentFilePath(filePath);
-        }
+        // Save assignment to database first to ensure we have a valid ID
+        UUID assignmentId = UUID.randomUUID();
+        assignment.setId(assignmentId);
 
-        // Create submissions folder
-        String submissionFolder = uploadDir + "/submissions";
-        new File(submissionFolder).mkdirs();
-        assignment.setSubmissionFolderPath(submissionFolder);
-
-        // Save assignment to database
         HibernateUtil.executeInTransaction(session -> {
-            session.persist(assignment);
+            try {
+                // Get a managed instance of the teacher
+                Teacher teacher = session.get(Teacher.class, assignment.getTeacher().getId());
+                if (teacher == null) {
+                    throw new IllegalStateException("Teacher not found");
+                }
+
+                // Create a new managed assignment instance
+                Assignment newAssignment = new Assignment();
+                newAssignment.setId(assignmentId);
+                newAssignment.setTitle(assignment.getTitle());
+                newAssignment.setDescription(assignment.getDescription());
+                newAssignment.setTeacher(teacher);
+                newAssignment.setOwner(teacher);
+                newAssignment.setPosttime(LocalDate.now());
+                newAssignment.setDeadline(assignment.getDeadline());
+                newAssignment.setTargetClass(assignment.getTargetClass());
+                newAssignment.setCourse(teacher.getCourse());
+
+                // Initialize collections
+                newAssignment.setSubmittedStudents(new ArrayList<>());
+                newAssignment.setSharedTeachers(new ArrayList<>());
+                newAssignment.setSubmissions(new ArrayList<>());
+
+                // Save the assignment first to get the ID
+                session.persist(newAssignment);
+                session.flush();
+
+                // Now handle file upload with the confirmed ID
+                String baseDir = servletContext.getRealPath("/uploads/assignments");
+                String uploadDir = baseDir + "/" + newAssignment.getTargetClass() + "/" + newAssignment.getId().toString();
+                
+                // Create directories
+                createDirectories(uploadDir);
+
+                // Handle file upload if present
+                if (filePart != null && filePart.getSize() > 0) {
+                    String fileName = filePart.getSubmittedFileName();
+                    String filePath = uploadDir + "/" + fileName;
+                    
+                    try (InputStream input = filePart.getInputStream();
+                         FileOutputStream output = new FileOutputStream(filePath)) {
+                        byte[] buffer = new byte[1024];
+                        int length;
+                        while ((length = input.read(buffer)) > 0) {
+                            output.write(buffer, 0, length);
+                        }
+                    }
+                    
+                    newAssignment.setAssignmentFileName(fileName);
+                    newAssignment.setAssignmentFilePath(filePath);
+                }
+
+                // Create submissions folder
+                String submissionFolder = uploadDir + "/submissions";
+                createDirectories(submissionFolder);
+                newAssignment.setSubmissionFolderPath(submissionFolder);
+
+                // Find and add teachers with same course
+                List<Teacher> sameCourseteachers = session.createQuery(
+                    "FROM Teacher WHERE course = :course AND id != :ownerId", Teacher.class)
+                    .setParameter("course", teacher.getCourse())
+                    .setParameter("ownerId", teacher.getId())
+                    .list();
+                newAssignment.getSharedTeachers().addAll(sameCourseteachers);
+
+                // Update the assignment with file information
+                session.merge(newAssignment);
+                
+                // Copy back the ID to the original assignment
+                assignment.setId(newAssignment.getId());
+                
+            } catch (IOException e) {
+                throw new RuntimeException("Error handling file upload: " + e.getMessage(), e);
+            }
         });
+    }
+
+    // Helper method to create directories with better error handling
+    private void createDirectories(String path) throws IOException {
+        File dir = new File(path);
+        if (!dir.exists()) {
+            boolean created = dir.mkdirs();
+            if (!created) {
+                throw new IOException("Failed to create directory: " + path);
+            }
+        }
+        
+        if (!dir.canWrite()) {
+            throw new IOException("Directory is not writable: " + path);
+        }
     }
 
     public void handleSubmission(Submission submission, Part filePart) throws Exception {
